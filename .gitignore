@@ -1,4 +1,5 @@
 run.bat
 Main.class
+Main.h
 native.lib
 native.dll
