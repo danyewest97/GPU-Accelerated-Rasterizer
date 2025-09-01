@@ -95,7 +95,7 @@ __global__ void rasterize_kernel(double* vertices_in, double* img_out, double si
 
 __global__ void test_kernel() {
     printf("test kernel started");
-    bounding_box(1, 1, 1, 1, 1, 1);
+    //bounding_box(1, 1, 1, 1, 1, 1);
     printf("test kernel finished");
 }
 
@@ -114,7 +114,10 @@ void run()
         0,
         hipStreamDefault
     >>>();
-    printf("hi");
+
+    // Wait on all active streams on the current device. VERY NECESSARY
+    hipDeviceSynchronize();
+
 }
 
 
