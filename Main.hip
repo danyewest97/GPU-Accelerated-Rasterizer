@@ -47,9 +47,11 @@ __global__ void matrix_kernel(double* vectors_in, double* matrix_in, double* vec
 
 
 
-__device__ int[4] bounding_box(double x1, double y1, double x2, double y2, double x3, double y3) {
+__device__ int* bounding_box(double x1, double y1, double x2, double y2, double x3, double y3) {
     double minx = DBL_MAX;
+    double maxx = -DBL_MAX;
     
+    return new int[1];
 }
 
 
@@ -68,7 +70,7 @@ __device__ bool contains(double i, double j, double x1, double y1, double x2, do
 
 __global__ void rasterize_kernel(double* vertices_in, double* img_out, double size, double triangles_per_thread, double img_width, double img_height) {
     int global_index = threadIdx.x + blockIdx.x * blockDim.x;
-    int start_index = (global_index * vectors_per_thread) * 9;
+    int start_index = (global_index * triangles_per_thread) * 9;
 
     // NOTE: Not sure if there is a better way to not have the + 3 and + 6 and + 9 operations, or if they even add significant overhead (or any overhead at all)
     for (int i = 0; i < triangles_per_thread; i++) {
@@ -91,6 +93,13 @@ __global__ void rasterize_kernel(double* vertices_in, double* img_out, double si
 }
 
 
+__global__ void test_kernel() {
+    printf("test kernel started");
+    bounding_box(1, 1, 1, 1, 1, 1);
+    printf("test kernel finished");
+}
+
+
 
 
 // Important note: not sure how much overhead variable creation and logic happening inside the kernel is adding, because I am not just sending
@@ -99,13 +108,18 @@ __global__ void rasterize_kernel(double* vertices_in, double* img_out, double si
 
 void run()
 {
-    
+    test_kernel<<<
+        dim3(1),
+        dim3(1),
+        0,
+        hipStreamDefault
+    >>>();
+    printf("hi");
 }
 
 
 
 
-JNIEXPORT jdoubleArray JNICALL Java_Main_helloWorld(JNIEnv* env, jobject thisObject) {
+JNIEXPORT void JNICALL Java_Main_test(JNIEnv* env, jobject thisObject) {
     run();
-    return NULL;
 }
