@@ -15,10 +15,50 @@ class Vector {
         double x;
         double y;
         double z;
-        __device__ Vector(double _x, double _y, double _z) {
+
+        __global__ Vector(double _x, double _y, double _z) {
             x = _x;
             y = _y;
             z = _z;
+        }
+};
+
+
+class Color {
+    public:
+        double r;
+        double g;
+        double b;
+
+        __global__ Vector(double _r, double _g, double _b) {
+            r = _r;
+            g = _g;
+            b = _b;
+        }
+};
+
+
+class Ray {
+    public:
+        Vector* origin = (Vector*) malloc(izeof(Vector));
+        Vector* direction = (Vector*) malloc(sizeof(Vector));
+
+        __global__ Ray(double x0, double y0, double z0,
+                       double dx, double dy, double dz) {
+            *origin = Vector(x0, y0, z0);
+            *direction = Vector(dx, dy, dz);
+        }
+};
+
+
+class Plane {
+    public:
+        Vector* origin = (Vector*) malloc(izeof(Vector));
+        double shift;
+
+        __global__ Plane(double a, double b, double c, double d) {
+            origin = Vector(a, b, c);
+            shift = d;
         }
 };
 
@@ -59,26 +99,27 @@ __global__ void matrix_kernel(double* vectors_in, double* matrix_in, double* vec
 }
 
 
+__device__ double* project
 
 __device__ int* bounding_box(double x1, double y1, double x2, double y2, double x3, double y3, double img_width, double img_height) {
     // Subtracting 1 from the img_width and img_height values to account for 0-based indexing (max value should be img_width - 1, not img_width)
     img_width -= 1;
     img_height -= 1;
-
+    
     double min_x = x1;
     double max_x = x1;
     double min_y = y1;
     double max_y = y1;
-
+    
     if (x2 < min_x) min_x = x2;
     if (x3 < min_x) min_x = x3;
-
+    
     if (x2 > max_x) max_x = x2;
     if (x3 > max_x) max_x = x3;
-
+    
     if (y2 < min_y) min_y = y2;
     if (y3 < min_y) min_y = y3;
-
+    
     if (y2 > max_y) max_y = y2;
     if (y3 > max_y) max_y = y3;
     
@@ -86,29 +127,34 @@ __device__ int* bounding_box(double x1, double y1, double x2, double y2, double 
         (int) (min_x),
         (int) (max_x + 1)
     };
-
+    
     int result_y[] = {
         (int) (min_y),
         (int) (max_y + 1)
     };
-
+    
     for (int i = 0; i < 2; i++) {
         int curr_x = result_x[i];
         int curr_y = result_y[i];
-
-
+        
+        
         if (curr_x > img_height) curr_x = img_height;
         if (curr_x < 0) curr_x = 0;
-
+        
         if (curr_y > img_width) curr_y = img_width;
         if (curr_y < 0) curr_y = 0;
     }
-
+    
     int final_result[] = {
         result_x[0], result_x[1],
         result_y[0], result_y[1]
     };
+<<<<<<< HEAD
+    printf("%f", final_result[0]);
+=======
 
+    __syncthreads(); // I do believe this is necessary, though not fully sure why
+>>>>>>> b0307004cb2f3a250b7e08cf7612ac836aad4476
     return final_result;
 }
 
@@ -118,10 +164,10 @@ __device__ bool contains(double i, double j, double x1, double y1, double x2, do
     double dotAB = -(i - y1) * (x2 - x1) + (j - x1) * (y2 - y1);
     double dotBC = -(i - y2) * (x3 - x2) + (j - x2) * (y3 - y2);
     double dotCA = -(i - y3) * (x1 - x3) + (j - x3) * (y1 - y3);
-
+    
     bool allPos = dotAB >= 0 && dotBC >= 0 && dotCA >= 0;
     bool allNeg = dotAB <= 0 && dotBC <= 0 && dotCA <= 0;
-
+    
     return allPos || allNeg;
 }
 
@@ -129,11 +175,11 @@ __device__ bool contains(double i, double j, double x1, double y1, double x2, do
 __global__ void rasterize_kernel(double* vertices_in, double* img_out, double size, double triangles_per_thread, double img_width, double img_height) {
     int global_index = threadIdx.x + blockIdx.x * blockDim.x;
     int start_index = (global_index * triangles_per_thread) * 9;
-
+    
     // NOTE: Not sure if there is a better way to not have the + 3 and + 6 and + 9 operations, or if they even add significant overhead (or any overhead at all)
     for (int i = 0; i < triangles_per_thread; i++) {
         if (start_index + 9 >= size) continue;
-
+        
         float a[3];
         float b[3];
         float c[3];
@@ -142,22 +188,27 @@ __global__ void rasterize_kernel(double* vertices_in, double* img_out, double si
             b[j] = vertices_in[start_index + j + 3];
             c[j] = vertices_in[start_index + j + 6];
         }
-
-
         
-
+        
+        
+        
         start_index += 9;
     }
 }
 
 
+__device__ void print_hi() {
+    printf("hello world");
+}
+
 __global__ void test_kernel() {
     printf("test kernel started");
+<<<<<<< HEAD
+    
+=======
     int* result = bounding_box(1, 0, 1, 2, 3, 4, 10, 10);
-    __syncthreads();
-    Vector v1(1, 2, 3);
-    printf("\n%f\n", result[0]);
-    printf("\n%f\n", v1.x);
+    printf("\n%i\n", result[0]);
+>>>>>>> b0307004cb2f3a250b7e08cf7612ac836aad4476
     printf("test kernel finished");
 }
 
