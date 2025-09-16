@@ -99,8 +99,6 @@ __global__ void matrix_kernel(double* vectors_in, double* matrix_in, double* vec
 }
 
 
-__device__ double* project
-
 __device__ int* bounding_box(double x1, double y1, double x2, double y2, double x3, double y3, double img_width, double img_height) {
     // Subtracting 1 from the img_width and img_height values to account for 0-based indexing (max value should be img_width - 1, not img_width)
     img_width -= 1;
@@ -149,7 +147,7 @@ __device__ int* bounding_box(double x1, double y1, double x2, double y2, double 
         result_x[0], result_x[1],
         result_y[0], result_y[1]
     };
-    
+
     return final_result;
 }
 
