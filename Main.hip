@@ -203,12 +203,7 @@ __device__ void print_hi() {
 
 __global__ void test_kernel() {
     printf("test kernel started");
-<<<<<<< HEAD
     
-=======
-    int* result = bounding_box(1, 0, 1, 2, 3, 4, 10, 10);
-    printf("\n%i\n", result[0]);
->>>>>>> b0307004cb2f3a250b7e08cf7612ac836aad4476
     printf("test kernel finished");
 }
 
