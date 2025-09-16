@@ -149,12 +149,7 @@ __device__ int* bounding_box(double x1, double y1, double x2, double y2, double 
         result_x[0], result_x[1],
         result_y[0], result_y[1]
     };
-<<<<<<< HEAD
-    printf("%f", final_result[0]);
-=======
-
-    __syncthreads(); // I do believe this is necessary, though not fully sure why
->>>>>>> b0307004cb2f3a250b7e08cf7612ac836aad4476
+    
     return final_result;
 }
 
