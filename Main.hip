@@ -15,50 +15,10 @@ class Vector {
         double x;
         double y;
         double z;
-
-        __global__ Vector(double _x, double _y, double _z) {
+        __device__ Vector(double _x, double _y, double _z) {
             x = _x;
             y = _y;
             z = _z;
-        }
-};
-
-
-class Color {
-    public:
-        double r;
-        double g;
-        double b;
-
-        __global__ Vector(double _r, double _g, double _b) {
-            r = _r;
-            g = _g;
-            b = _b;
-        }
-};
-
-
-class Ray {
-    public:
-        Vector* origin = (Vector*) malloc(izeof(Vector));
-        Vector* direction = (Vector*) malloc(sizeof(Vector));
-
-        __global__ Ray(double x0, double y0, double z0,
-                       double dx, double dy, double dz) {
-            *origin = Vector(x0, y0, z0);
-            *direction = Vector(dx, dy, dz);
-        }
-};
-
-
-class Plane {
-    public:
-        Vector* origin = (Vector*) malloc(izeof(Vector));
-        double shift;
-
-        __global__ Plane(double a, double b, double c, double d) {
-            origin = Vector(a, b, c);
-            shift = d;
         }
 };
 
@@ -148,7 +108,7 @@ __device__ int* bounding_box(double x1, double y1, double x2, double y2, double 
         result_x[0], result_x[1],
         result_y[0], result_y[1]
     };
-    printf("%f", final_result[0]);
+
     return final_result;
 }
 
@@ -193,7 +153,11 @@ __global__ void rasterize_kernel(double* vertices_in, double* img_out, double si
 
 __global__ void test_kernel() {
     printf("test kernel started");
-    
+    int* result = bounding_box(1, 0, 1, 2, 3, 4, 10, 10);
+    __syncthreads();
+    Vector v1(1, 2, 3);
+    printf("\n%f\n", result[0]);
+    printf("\n%f\n", v1.x);
     printf("test kernel finished");
 }
 
