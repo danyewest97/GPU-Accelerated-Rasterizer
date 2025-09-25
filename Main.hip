@@ -3,9 +3,11 @@
 
 #include <hip/hip_runtime.h>
 
+// TODO: Check if standard library functions can be used on GPU, and if not find out how to use sin and cos functions on GPU
 #include <iostream> // Input and output functions like printf
 #include <cstdlib> // Standard library with many useful functions
 #include <chrono> // Library used for timing, for measuring performance
+#include <cmath> // Standard math library for things like sine and cosine functions
 
 // 3D vector with x-, y-, and z-values
 struct vector {
@@ -19,7 +21,7 @@ struct color {
 
 // A template for a material with different parameters that control how the material interacts with light (used in calculating BRDFs)
 struct material {
-    color color;
+    color material_color;
     double absorption, reflection, transmission, diffusion;
 };
 
@@ -29,9 +31,15 @@ struct plane {
     double d;
 };
 
+// A 3D Ray that starts from the 3D point origin and points in the direction given by the direction vector
+struct ray {
+    vector origin;
+    vector direction;
+};
+
 // A 3D triangle defined by the 3 vectors a, b, and c, with the given material and plane
 struct tri {
-    plane plane;                        // the 3D plane that the triangle sits on
+    plane surface_plane;                // the 3D plane that the triangle sits on
     material surface_material;          // the material that the triangle is "made out of," defining how light rays should interact with the triangle
     vector a;
     vector b;
@@ -40,7 +48,7 @@ struct tri {
 
 // A container to hold the height and width of an image (or anything else with height and width)
 struct dimensions {
-    double height, width;
+    double width, height;
 };
 
 // 3D camera, defines where the camera rays originate and in which direction they radiate, to control where the viewport is looking
@@ -56,7 +64,7 @@ struct camera {
 // Precondition: Matrices must be compatible for multiplication
 // TODO: Confirm that matrix multiplication algorithm, specifically matrix indices, are correct, and create a standard for how matrices should be 
 // initialized (should first 3 digits of 3x3 be the x-components of the 3 basis vectors, or x-, y-, and z-components of the first basis vector?)
-__device__ void matrix_multiplication(double* matrix, double* vector, double* output) {
+__global__ void matrix_multiplication(double* matrix, double* vector, double* output) {
     double x = vector[0];
     double y = vector[1];
     double z = vector[2];
@@ -66,6 +74,42 @@ __device__ void matrix_multiplication(double* matrix, double* vector, double* ou
     output[0] = result[0];
     output[1] = result[1];
     output[2] = result[2];
+}
+
+
+__global__ void transform_vector(double* matrix, vector* v) {
+    double x = v->x;
+    double y = v->y;
+    double z = v->z;
+    double result[] = {(matrix[0] + matrix[1] + matrix[2]) * x, 
+                      (matrix[3] + matrix[4] + matrix[5]) * y,
+                      (matrix[6] + matrix[7] + matrix[8]) * z};
+    v->x = result[0];
+    v->y = result[1];
+    v->z = result[2];
+}
+
+
+// 3D vector rotation methods that rotate vector v around the vector center by the given radians, on the respective axis
+__global__ void rotateX(vector* v, vector* center, double radians) {
+    double sine = std::sin(radians);
+    double cosine = std::cos(radians);
+    
+    double transformation_matrix[] = {
+        1, 0, 0,
+        0, cosine, -sine,
+        0, sine, cosine
+    };
+    
+    
+}
+
+__global__ void rotateY(vector* v, vector* center, double radians) {
+    
+}
+
+__global__ void rotateZ(vector* v, vector* center, double radians) {
+    
 }
 
 // Checks if the point (i, j) is contained in the triangle defined by the points (x1, y1), (x2, y2), and (x3, y3)
@@ -88,7 +132,15 @@ __global__ void trace_ray(int index, tri* tris, color* output) {
 
 
 __global__ void generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
-
+    vector cam_origin = curr_cam->origin;
+    vector cam_normal = curr_cam->rotation;
+    double vfov = curr_cam->vfov;
+    double hfov = curr_cam->hfov;
+    
+    double width = img_dims->width;
+    double height = img_dims->height;
+    
+    //vector starting_direction = 
 }
 
 
