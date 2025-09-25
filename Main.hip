@@ -53,61 +53,6 @@ struct camera {
 };
 
 
-
-
-
-class Vector {
-    public:
-        double x;
-        double y;
-        double z;
-
-        __global__ Vector(double _x, double _y, double _z) {
-            x = _x;
-            y = _y;
-            z = _z;
-        }
-};
-
-
-class Color {
-    public:
-        double r;
-        double g;
-        double b;
-
-        __global__ Vector(double _r, double _g, double _b) {
-            r = _r;
-            g = _g;
-            b = _b;
-        }
-};
-
-
-class Ray {
-    public:
-        Vector* origin = (Vector*) malloc(izeof(Vector));
-        Vector* direction = (Vector*) malloc(sizeof(Vector));
-
-        __global__ Ray(double x0, double y0, double z0,
-                       double dx, double dy, double dz) {
-            *origin = Vector(x0, y0, z0);
-            *direction = Vector(dx, dy, dz);
-        }
-};
-
-
-class Plane {
-    public:
-        Vector* origin = (Vector*) malloc(izeof(Vector));
-        double shift;
-
-        __global__ Plane(double a, double b, double c, double d) {
-            origin = Vector(a, b, c);
-            shift = d;
-        }
-};
-
 // Precondition: Matrices must be compatible for multiplication
 __device__ void matrix_multiplication(double* matrix, double* vector, double* output) {
     double x = vector[0];
@@ -120,86 +65,6 @@ __device__ void matrix_multiplication(double* matrix, double* vector, double* ou
     output[1] = result[1];
     output[2] = result[2];
 }
-
-<<<<<<< HEAD
-=======
-__global__ void matrix_kernel(double* vectors_in, double* matrix_in, double* vectors_out, int size, int vectors_per_thread) {
-    int global_index = threadIdx.x + blockIdx.x * blockDim.x;
-    int start_index = (global_index * vectors_per_thread) * 3;
-
-
-    for (int i = 0; i < vectors_per_thread; i++) {
-        if (start_index >= size) continue; // *Should* account for null vectors that don't need to be processed
-        double vector[3];
-        for (int j = 0; j < 3; j++) {
-            vector[j] = vectors_in[start_index + j];
-        }
-        
-        double output[3];
-        matrix_multiplication(matrix_in, vector, output);
-        for (int j = 0; j < 3; j++) {
-            vectors_out[start_index + j] = output[j];
-        }
-
-        
-        start_index += 3;
-    }
-}
-
-
-__device__ int* bounding_box(double x1, double y1, double x2, double y2, double x3, double y3, double img_width, double img_height) {
-    // Subtracting 1 from the img_width and img_height values to account for 0-based indexing (max value should be img_width - 1, not img_width)
-    img_width -= 1;
-    img_height -= 1;
-    
-    double min_x = x1;
-    double max_x = x1;
-    double min_y = y1;
-    double max_y = y1;
-    
-    if (x2 < min_x) min_x = x2;
-    if (x3 < min_x) min_x = x3;
-    
-    if (x2 > max_x) max_x = x2;
-    if (x3 > max_x) max_x = x3;
-    
-    if (y2 < min_y) min_y = y2;
-    if (y3 < min_y) min_y = y3;
-    
-    if (y2 > max_y) max_y = y2;
-    if (y3 > max_y) max_y = y3;
-    
-    int result_x[] = {
-        (int) (min_x),
-        (int) (max_x + 1)
-    };
-    
-    int result_y[] = {
-        (int) (min_y),
-        (int) (max_y + 1)
-    };
-    
-    for (int i = 0; i < 2; i++) {
-        int curr_x = result_x[i];
-        int curr_y = result_y[i];
-        
-        
-        if (curr_x > img_height) curr_x = img_height;
-        if (curr_x < 0) curr_x = 0;
-        
-        if (curr_y > img_width) curr_y = img_width;
-        if (curr_y < 0) curr_y = 0;
-    }
-    
-    int final_result[] = {
-        result_x[0], result_x[1],
-        result_y[0], result_y[1]
-    };
-
-    return final_result;
-}
-
->>>>>>> 11aaf2748d730c15c58a51b8050fbf075b4a7ecc
 
 // Checks if the point (i, j) is contained in the triangle defined by the points (x1, y1), (x2, y2), and (x3, y3)
 __device__ bool contains(double i, double j, double x1, double y1, double x2, double y2, double x3, double y3) {
@@ -233,10 +98,6 @@ __global__ void ray_trace_kernel(double* vertices_in, double* img_out, double si
 
 __global__ void test_kernel() {
     printf("test kernel started");
-<<<<<<< HEAD
-=======
-    
->>>>>>> 11aaf2748d730c15c58a51b8050fbf075b4a7ecc
     printf("test kernel finished");
 }
 
