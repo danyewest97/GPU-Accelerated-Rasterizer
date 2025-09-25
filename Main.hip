@@ -1,13 +1,59 @@
 #include "Main.h"
 #include <jni.h>
-#include <iostream>
 
 #include <hip/hip_runtime.h>
 
-//#include <iostream>
-#include <cstdlib>
-#include <chrono> // For timing
-#include <float.h>
+#include <iostream> // Input and output functions like printf
+#include <cstdlib> // Standard library with many useful functions
+#include <chrono> // Library used for timing, for measuring performance
+
+// 3D vector with x-, y-, and z-values
+struct vector {
+    double x, y, z;
+};
+
+// RGB color with values between 0-1 (no alpha)
+struct color {
+    double r, g, b;
+};
+
+// A template for a material with different parameters that control how the material interacts with light (used in calculating BRDFs)
+struct material {
+    color color;
+    double absorption, reflection, transmission, diffusion;
+};
+
+// A 3D plane with components a, b, c, d, expressed by equation ax + by + cz + d = 0
+struct plane {
+    vector normal;                      // vector to store the components of the plane's normal as (a, b, c)
+    double d;
+};
+
+// A 3D triangle defined by the 3 vectors a, b, and c, with the given material and plane
+struct tri {
+    plane plane;                        // the 3D plane that the triangle sits on
+    material surface_material;          // the material that the triangle is "made out of," defining how light rays should interact with the triangle
+    vector a;
+    vector b;
+    vector c;
+};
+
+// A container to hold the height and width of an image (or anything else with height and width)
+struct dimensions {
+    double height, width;
+};
+
+// 3D camera, defines where the camera rays originate and in which direction they radiate, to control where the viewport is looking
+struct camera {
+    vector origin;                      // The 3D point where all camera rays originate from
+    vector rotation;                    // The direction where camera rays radiate from the origin, with components (x_rotation, y_rotation, 
+                                        // z_rotation)
+    double vfov, hfov;                  // The field-of-view parameters, expressed in radians, that define how far left/right or up/down the camera 
+                                        // can see
+};
+
+
+
 
 
 class Vector {
@@ -75,6 +121,8 @@ __device__ void matrix_multiplication(double* matrix, double* vector, double* ou
     output[2] = result[2];
 }
 
+<<<<<<< HEAD
+=======
 __global__ void matrix_kernel(double* vectors_in, double* matrix_in, double* vectors_out, int size, int vectors_per_thread) {
     int global_index = threadIdx.x + blockIdx.x * blockDim.x;
     int start_index = (global_index * vectors_per_thread) * 3;
@@ -151,6 +199,7 @@ __device__ int* bounding_box(double x1, double y1, double x2, double y2, double 
     return final_result;
 }
 
+>>>>>>> 11aaf2748d730c15c58a51b8050fbf075b4a7ecc
 
 // Checks if the point (i, j) is contained in the triangle defined by the points (x1, y1), (x2, y2), and (x3, y3)
 __device__ bool contains(double i, double j, double x1, double y1, double x2, double y2, double x3, double y3) {
@@ -165,38 +214,29 @@ __device__ bool contains(double i, double j, double x1, double y1, double x2, do
 }
 
 
-__global__ void rasterize_kernel(double* vertices_in, double* img_out, double size, double triangles_per_thread, double img_width, double img_height) {
+
+__global__ void trace_ray(int index, tri* tris, color* output) {
+
+}
+
+
+__global__ void generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
+
+}
+
+
+__global__ void ray_trace_kernel(double* vertices_in, double* img_out, double size, double triangles_per_thread, double img_width, double img_height) {
     int global_index = threadIdx.x + blockIdx.x * blockDim.x;
-    int start_index = (global_index * triangles_per_thread) * 9;
     
-    // NOTE: Not sure if there is a better way to not have the + 3 and + 6 and + 9 operations, or if they even add significant overhead (or any overhead at all)
-    for (int i = 0; i < triangles_per_thread; i++) {
-        if (start_index + 9 >= size) continue;
-        
-        float a[3];
-        float b[3];
-        float c[3];
-        for (int j = 0; j < 3; j++) {
-            a[j] = vertices_in[start_index + j];
-            b[j] = vertices_in[start_index + j + 3];
-            c[j] = vertices_in[start_index + j + 6];
-        }
-        
-        
-        
-        
-        start_index += 9;
-    }
 }
 
-
-__device__ void print_hi() {
-    printf("hello world");
-}
 
 __global__ void test_kernel() {
     printf("test kernel started");
+<<<<<<< HEAD
+=======
     
+>>>>>>> 11aaf2748d730c15c58a51b8050fbf075b4a7ecc
     printf("test kernel finished");
 }
 
