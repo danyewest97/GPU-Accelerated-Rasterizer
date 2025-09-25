@@ -54,6 +54,8 @@ struct camera {
 
 
 // Precondition: Matrices must be compatible for multiplication
+// TODO: Confirm that matrix multiplication algorithm, specifically matrix indices, are correct, and create a standard for how matrices should be 
+// initialized (should first 3 digits of 3x3 be the x-components of the 3 basis vectors, or x-, y-, and z-components of the first basis vector?)
 __device__ void matrix_multiplication(double* matrix, double* vector, double* output) {
     double x = vector[0];
     double y = vector[1];
