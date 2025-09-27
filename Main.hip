@@ -10,67 +10,9 @@
 #include <cmath> // Standard math library for things like sine and cosine functions
 using namespace std; // Makes it so I don't have to put std:: before everything!
 
-// 3D vector with x-, y-, and z-values
-struct vector {
-    double x, y, z;
-};
+// Custom/local library files
+#include "structs.cpp"; // Includes all of the required structs and their constructors, plus some methods for them
 
-// RGB color with values between 0-1 (no alpha)
-struct color {
-    double r, g, b;
-};
-
-// A template for a material with different parameters that control how the material interacts with light (used in calculating BRDFs)
-struct material {
-    color material_color;
-    double absorption, reflection, transmission, diffusion;
-};
-
-// A 3D plane with components a, b, c, d, expressed by equation ax + by + cz + d = 0
-struct plane {
-    vector normal;                      // vector to store the components of the plane's normal as (a, b, c)
-    double d;
-};
-
-// A 3D Ray that starts from the 3D point origin and points in the direction given by the direction vector
-struct ray {
-    vector origin;
-    vector direction;
-};
-
-// A 3D triangle defined by the 3 vectors a, b, and c, with the given material and plane
-struct tri {
-    plane surface_plane;                // the 3D plane that the triangle sits on
-    material surface_material;          // the material that the triangle is "made out of," defining how light rays should interact with the triangle
-    vector a;
-    vector b;
-    vector c;
-};
-
-// A container to hold the height and width of an image (or anything else with height and width)
-struct dimensions {
-    double width, height;
-};
-
-// 3D camera, defines where the camera rays originate and in which direction they radiate, to control where the viewport is looking
-struct camera {
-    vector origin;                      // The 3D point where all camera rays originate from
-    vector rotation;                    // The direction where camera rays radiate from the origin, with components (x_rotation, y_rotation, 
-                                        // z_rotation)
-    double vfov, hfov;                  // The field-of-view parameters, expressed in radians, that define how far left/right or up/down the camera 
-                                        // can see
-};
-
-
-// // Constructors for above-defined structs
-// vector constructor
-__device__ vector* new_vector(double x, double y, double z) {
-    vector* v = (vector*) malloc(sizeof(vector));
-    v->x = x;
-    v->y = y;
-    v->z = z;
-    return v;
-}
 
 // Precondition: Matrices must be compatible for multiplication
 // TODO: Confirm that matrix multiplication algorithm, specifically matrix indices, are correct, and create a standard for how matrices should be 
@@ -177,7 +119,7 @@ __device__ bool contains(double i, double j, double x1, double y1, double x2, do
 
 
 
-__global__ void trace_ray(int index, tri* tris, color* output) {
+__global__ void trace_ray(int index, triangle* tris, color* output) {
 
 }
 
@@ -205,11 +147,8 @@ __global__ void ray_trace_kernel(double* vertices_in, double* img_out, double si
 // -- so don't do that!
 __global__ void test_kernel() {
     printf("test kernel started\n");
-    vector* test_vector = new_vector(1, 2, 3);
-    vector* origin = new_vector(0, 0, 0);
-    printf("%f \n", test_vector->x);
-    rotate_z(test_vector, origin, 1);
-    printf("%f\n", test_vector->x);
+    vector* v = new_vector(1, 2, 3);
+    printf("%f\n", v->x);
     printf("test kernel finished\n");
 }
 
