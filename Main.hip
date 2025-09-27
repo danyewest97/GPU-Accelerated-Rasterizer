@@ -8,6 +8,7 @@
 #include <cstdlib> // Standard library with many useful functions
 #include <chrono> // Library used for timing, for measuring performance
 #include <cmath> // Standard math library for things like sine and cosine functions
+using namespace std; // Makes it so I don't have to put std:: before everything!
 
 // 3D vector with x-, y-, and z-values
 struct vector {
@@ -61,10 +62,20 @@ struct camera {
 };
 
 
+// // Constructors for above-defined structs
+// vector constructor
+__device__ vector* new_vector(double x, double y, double z) {
+    vector* v = (vector*) malloc(sizeof(vector));
+    v->x = x;
+    v->y = y;
+    v->z = z;
+    return v;
+}
+
 // Precondition: Matrices must be compatible for multiplication
 // TODO: Confirm that matrix multiplication algorithm, specifically matrix indices, are correct, and create a standard for how matrices should be 
 // initialized (should first 3 digits of 3x3 be the x-components of the 3 basis vectors, or x-, y-, and z-components of the first basis vector?)
-__global__ void matrix_multiplication(double* matrix, double* vector, double* output) {
+__device__ void matrix_multiplication(double* matrix, double* vector, double* output) {
     double x = vector[0];
     double y = vector[1];
     double z = vector[2];
@@ -77,7 +88,7 @@ __global__ void matrix_multiplication(double* matrix, double* vector, double* ou
 }
 
 
-__global__ void transform_vector(double* matrix, vector* v) {
+__device__ void transform_vector(double* matrix, vector* v) {
     double x = v->x;
     double y = v->y;
     double z = v->z;
@@ -90,10 +101,25 @@ __global__ void transform_vector(double* matrix, vector* v) {
 }
 
 
+// Subtracts the second vector from the first vector
+__device__ void sub_vectors(vector* v, vector* w) {
+    v->x -= w->x;
+    v->y -= w->y;
+    v->z -= w->z;
+}
+
+// Adds the second vector to the first vector
+__device__ void add_vectors(vector* v, vector* w) {
+    v->x += w->x;
+    v->y += w->y;
+    v->z += w->z;
+}
+
+
 // 3D vector rotation methods that rotate vector v around the vector center by the given radians, on the respective axis
-__global__ void rotateX(vector* v, vector* center, double radians) {
-    double sine = std::sin(radians);
-    double cosine = std::cos(radians);
+__device__ void rotate_x(vector* v, vector* center, double radians) {
+    double sine = sin(radians);
+    double cosine = cos(radians);
     
     double transformation_matrix[] = {
         1, 0, 0,
@@ -101,16 +127,41 @@ __global__ void rotateX(vector* v, vector* center, double radians) {
         0, sine, cosine
     };
     
-    
+    sub_vectors(v, center);
+    transform_vector(transformation_matrix, v);
+    add_vectors(v, center);
 }
 
-__global__ void rotateY(vector* v, vector* center, double radians) {
+__device__ void rotate_y(vector* v, vector* center, double radians) {
+    double sine = sin(radians);
+    double cosine = cos(radians);
     
+    double transformation_matrix[] = {
+        cosine, 0, sine,
+        0, 1, 0,
+        -sine, 0, cosine
+    };
+    
+    sub_vectors(v, center);
+    transform_vector(transformation_matrix, v);
+    add_vectors(v, center);
 }
 
-__global__ void rotateZ(vector* v, vector* center, double radians) {
+__device__ void rotate_z(vector* v, vector* center, double radians) {
+    double sine = sin(radians);
+    double cosine = cos(radians);
+
+    double transformation_matrix[] = {
+        cosine, -sine, 0,
+        sine, cosine, 0,
+        0, 0, 1
+    };
     
+    sub_vectors(v, center);
+    transform_vector(transformation_matrix, v);
+    add_vectors(v, center);
 }
+
 
 // Checks if the point (i, j) is contained in the triangle defined by the points (x1, y1), (x2, y2), and (x3, y3)
 __device__ bool contains(double i, double j, double x1, double y1, double x2, double y2, double x3, double y3) {
@@ -150,9 +201,16 @@ __global__ void ray_trace_kernel(double* vertices_in, double* img_out, double si
 }
 
 
+// Note: For some reason (probably a compilation bug or something), HIP seems to break when I put two identical print statements in here
+// -- so don't do that!
 __global__ void test_kernel() {
-    printf("test kernel started");
-    printf("test kernel finished");
+    printf("test kernel started\n");
+    vector* test_vector = new_vector(1, 2, 3);
+    vector* origin = new_vector(0, 0, 0);
+    printf("%f \n", test_vector->x);
+    rotate_z(test_vector, origin, 1);
+    printf("%f\n", test_vector->x);
+    printf("test kernel finished\n");
 }
 
 
