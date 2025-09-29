@@ -124,3 +124,9 @@ __device__ camera* new_camera(vector* origin, vector* rotation, double vfov, dou
     c->hfov = hfov;
     return c;
 }
+
+
+// Cloning methods
+__device__ vector* clone_vector(vector* v) {
+    return new_vector(v->x, v->y, v->z);
+}
