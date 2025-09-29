@@ -133,11 +133,16 @@ __global__ void generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
     double width = img_dims->width;
     double height = img_dims->height;
     
+
+    // TODO: Confirm that rays need to be offset? Or should they just come directly from the camera origin with no offset? I think having an offset is 
+    // correct
     double initial_horizontal_rotation = -hfov / 2;
     double initial_vertical_rotation = -vfov / 2;
-    double initial_horizontal_offset = -width / 2;
-    double initial_vertical_offset = -height / 2;
+    double initial_horizontal_offset = -width / 2 + 0.5;                    // Adding 0.5 to each offset to move the rays to be in the middle of each 
+                                                                            // pixel
+    double initial_vertical_offset = -height / 2 + 0.5;
 
+    // Make sure
 
     vector* starting_direction = clone_vector(&cam_normal);
     rotate_x(starting direction, &cam_origin, initial_horizontal_rotation);
