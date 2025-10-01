@@ -87,6 +87,7 @@ __device__ plane* new_plane(vector* normal, double d) {
     plane* p = (plane*) malloc(sizeof(plane));
     p->normal = *normal;
     p->d = d;
+    return p;
 }
 
 // ray constructor
@@ -94,6 +95,7 @@ __device__ ray* new_ray(vector* origin, vector* direction) {
     ray* r = (ray*) malloc(sizeof(ray));
     r->origin = *origin;
     r->direction = *direction;
+    return r;
 }
 
 // triangle constructor
