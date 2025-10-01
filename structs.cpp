@@ -55,7 +55,7 @@ struct camera {
 // // Constructors for above-defined structs
 // vector constructor
 __device__ vector* new_vector(double x, double y, double z) {
-    vector* v = (vector*) malloc(sizeof(vector));
+    vector* v = new vector[1]];
     v->x = x;
     v->y = y;
     v->z = z;
@@ -64,7 +64,7 @@ __device__ vector* new_vector(double x, double y, double z) {
 
 // color constructor
 __device__ color* new_color(double r, double g, double b) {
-    color* c = (color*) malloc(sizeof(color));
+    color* c = new color[1];
     c->r = r;
     c->g = g;
     c->b = b;
@@ -73,7 +73,7 @@ __device__ color* new_color(double r, double g, double b) {
 
 // material constructor
 __device__ material* new_material(color* material_color, double absorption, double reflection, double transmission, double diffusion) {
-    material* m = (material*) malloc(sizeof(material));
+    material* m = new material[1];
     m->material_color = *material_color;
     m->absorption = absorption;
     m->reflection = reflection;
@@ -84,7 +84,7 @@ __device__ material* new_material(color* material_color, double absorption, doub
 
 // plane constructor
 __device__ plane* new_plane(vector* normal, double d) {
-    plane* p = (plane*) malloc(sizeof(plane));
+    plane* p = new plane[1];
     p->normal = *normal;
     p->d = d;
     return p;
@@ -92,7 +92,7 @@ __device__ plane* new_plane(vector* normal, double d) {
 
 // ray constructor
 __device__ ray* new_ray(vector* origin, vector* direction) {
-    ray* r = (ray*) malloc(sizeof(ray));
+    ray* r = new ray[1];
     r->origin = *origin;
     r->direction = *direction;
     return r;
@@ -100,7 +100,7 @@ __device__ ray* new_ray(vector* origin, vector* direction) {
 
 // triangle constructor
 __device__ triangle* new_triangle(plane* surface_plane, material* surface_material, vector* a, vector* b, vector* c) {
-    triangle* t = (triangle*) malloc(sizeof(triangle));
+    triangle* t = new triangle[1];
     t->surface_plane = *surface_plane;
     t->surface_material = *surface_material;
     t->a = *a;
@@ -111,7 +111,7 @@ __device__ triangle* new_triangle(plane* surface_plane, material* surface_materi
 
 // dimensions constructor
 __device__ dimensions* new_dimensions(double width, double height) {
-    dimensions* d = (dimensions*) malloc(sizeof(dimensions));
+    dimensions* d = new dimensions[1];
     d->width = width;
     d->height = height;
     return d;
@@ -119,7 +119,7 @@ __device__ dimensions* new_dimensions(double width, double height) {
 
 // camera constructor
 __device__ camera* new_camera(vector* origin, vector* rotation, double vfov, double hfov) {
-    camera* c = (camera*) malloc(sizeof(camera));
+    camera* c = new camera[1];
     c->origin = *origin;
     c->rotation = *rotation;
     c->vfov = vfov;
