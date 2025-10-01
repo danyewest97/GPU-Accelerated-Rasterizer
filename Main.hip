@@ -143,8 +143,8 @@ __global__ void generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
     double initial_vertical_offset = -height / 2 + 0.5;
 
     vector* starting_direction = clone_vector(&cam_normal);
-    rotate_x(starting direction, &cam_origin, initial_horizontal_rotation);
-    rotate_y(starting direction, &cam_origin, initial_vertical_rotation);
+    rotate_x(starting_direction, &cam_origin, initial_horizontal_rotation);
+    rotate_y(starting_direction, &cam_origin, initial_vertical_rotation);
 }
 
 
