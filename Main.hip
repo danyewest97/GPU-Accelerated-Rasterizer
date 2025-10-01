@@ -11,7 +11,7 @@
 using namespace std; // Makes it so I don't have to put std:: before everything!
 
 // Custom/local library files
-#include "structs.cpp"; // Includes all of the required structs and their constructors, plus some methods for them
+#include "structs.cpp" // Includes all of the required structs and their constructors, plus some methods for them
 
 
 // Precondition: Matrices must be compatible for multiplication
