@@ -100,6 +100,11 @@ __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
                                                                             // location-dependent and should therefore be rotated about (0, 0, 0)
             rotate_y(curr_ray->direction, true_origin, cam_normal->y);
             rotate_z(curr_ray->direction, true_origin, cam_normal->z);
+            normalize(curr_ray->direction);                                 // Normalizing the ray's direction so that distances returned from intersection methods will be 
+                                                                            // absolute and not scaled by the ray direction's length (the t-value, or distance, returned from the 
+                                                                            // ray-plane and ray-triangle intersection methods is dependent upon the ray direction's length, so if 
+                                                                            // that length is 1, the t-value returned will be the same as the Euclidean distance from the ray's 
+                                                                            // origin to the intersection point)
 
             primary_rays[i * height + j] = curr_ray;
             start_position->y++;
@@ -133,9 +138,7 @@ __global__ void test_kernel() {
 
     ray** main_cam_rays = generate_camera_rays(main_cam, img_dimensions);
 
-    vector* test_vector = main_cam_rays[1]->direction;
-    print_vector(test_vector);
-    printf("\n");
+    printf("%f\n", magnitude(cam_origin));
 
     printf("test kernel finished\n");
 }

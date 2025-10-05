@@ -131,7 +131,7 @@ __device__ void print_vector(vector* v) {
 
 
 // // Custom methods for structs
-// Vector methods
+// vector methods
 __device__ void transform_vector(double* matrix, vector* v) {
     double x = v->x;
     double y = v->y;
@@ -205,3 +205,41 @@ __device__ void rotate_z(vector* v, vector* center, double radians) {
     transform_vector(transformation_matrix, v);
     add_vectors(v, center);
 }
+
+// Returns the magnitude (or length) of the given vector
+__device__ double magnitude(vector* v) {
+    double sum = (v->x * v->x) + (v->y * v->y) + (v->z * v->z);
+    return sqrt(sum);
+}
+
+// Shortens the given vector to a length of 1
+__device__ void normalize(vector* v) {
+    double mag = magnitude(v);
+    v->x /= mag;
+    v->y /= mag;
+    v->z /= mag;
+}
+
+
+// color methods
+
+
+// material methods
+
+
+// plane methods
+
+
+// ray methods
+// Returns the t-value (or distance)
+__device__ double ray_plane_intersection_t() {
+
+}
+
+// triangle methods
+
+
+// dimensions methods
+
+
+// camera methods
