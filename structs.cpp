@@ -114,3 +114,10 @@ __device__ camera* new_camera(vector* origin, vector* rotation, double fov_scale
 __device__ vector* clone_vector(vector* v) {
     return new_vector(v->x, v->y, v->z);
 }
+
+
+
+// Print methods for debugging
+__device__ void print_vector(vector* v) {
+    printf("(%f, %f, %f)", v->x, v->y, v->z);
+}

@@ -195,8 +195,22 @@ __global__ void ray_trace_kernel(double* vertices_in, double* img_out, double si
 // -- so don't do that!
 __global__ void test_kernel() {
     printf("test kernel started\n");
+
     vector* cam_origin = new_vector(0, 0, 0);
     vector* cam_direction = new_vector(0, 0, 0);
+    double fov_scale = 1;
+    camera* main_cam = new_camera(cam_origin, cam_direction, fov_scale);
+
+    int width = 10;
+    int height = 10;
+    dimensions* img_dimensions = new_dimensions(10, 10);
+
+    ray** main_cam_rays = generate_camera_rays(main_cam, img_dimensions);
+
+    vector* test_vector = main_cam_rays[1]->direction;
+    print_vector(test_vector);
+    printf("\n");
+
     printf("test kernel finished\n");
 }
 
