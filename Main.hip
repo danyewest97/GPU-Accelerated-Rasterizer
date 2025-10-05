@@ -174,7 +174,6 @@ __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
                                                                             // location-dependent and should therefore be rotated about (0, 0, 0)
             rotate_y(curr_ray->direction, true_origin, cam_normal->y);
             rotate_z(curr_ray->direction, true_origin, cam_normal->z);
-            
 
             primary_rays[i * height + j] = curr_ray;
             start_position->y++;
