@@ -124,27 +124,53 @@ __global__ void trace_ray(int index, triangle* tris, color* output) {
 }
 
 
-__global__ void generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
-    vector cam_origin = curr_cam->origin;
-    vector cam_normal = curr_cam->rotation;
-    double vfov = curr_cam->vfov;
-    double hfov = curr_cam->hfov;
+// Takes the given camera and image dimensions and generates the corresponding primary/camera rays for them
+__device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
+    vector* cam_origin = curr_cam->origin;
+    vector* cam_normal = curr_cam->rotation;
+    double fov_scale = curr_cam->fov_scale;
     
-    double width = img_dims->width;
-    double height = img_dims->height;
+    int width = img_dims->width;
+    int height = img_dims->height;
+    int num_rays = width * height;
     
 
     // TODO: Confirm that rays need to be offset? Or should they just come directly from the camera origin with no offset? I think having an offset is 
     // correct
-    double initial_horizontal_rotation = -hfov / 2;
-    double initial_vertical_rotation = -vfov / 2;
+    // Note: may need optimizations for greater performance -- and either offload to CPU or do this in parallel (make new kernel for this?)
     double initial_horizontal_offset = -width / 2 + 0.5;                    // Adding 0.5 to each offset to move the rays to be in the middle of each 
                                                                             // pixel
     double initial_vertical_offset = -height / 2 + 0.5;
+    double passthrough_plane_distance = fov_scale;                          // Corresponds to the FOV scale of the camera (vertical and horizontal FOV 
+                                                                            // values depend on the width and height of the camera), this is my own 
+                                                                            // method for generating camera rays: imagine a plane that is fov_scale 
+                                                                            // units from the camera pinhole/aperture, and we are drawing a ray to the 
+                                                                            // centers of each of the cells on this plane -- the further away this 
+                                                                            // plane gets, the more clustered the rays are, so the smaller the FOV, 
+                                                                            // and vice versa for when the plane gets closer to the camera.
+                                                                            // I chose to do it this way because it is very intuitive to me and incredibly easy to implement, since no rotation is involved
 
-    vector* starting_direction = clone_vector(&cam_normal);
-    rotate_x(starting_direction, &cam_origin, initial_horizontal_rotation);
-    rotate_y(starting_direction, &cam_origin, initial_vertical_rotation);
+    vector* start_position = new_vector(initial_horizontal_offset, 
+                                        initial_vertical_offset, 
+                                        passthrough_plane_distance);        // The position on the plane (described above) that we start on, drawing
+                                                                            // a ray from the camera to this position will generate our camera rays
+    vector* true_origin = new_vector(0, 0, 0);                              // We will initially draw rays originating from (0, 0, 0), then translate 
+                                                                            // and rotate them according to the camera's position
+    ray** primary_rays = new ray*[num_rays];                                // Also called camera rays, primary rays are the resulting, final rays 
+                                                                            // that we will use for ray casting
+    
+    // Iterating through every cell in the image and creating a camera/primary ray for it
+    for (int i = 0; i < width; i++) {
+        for (int j = 0; j < height; j++) {
+            vector* curr_position = clone_vector(start_position);
+            ray* curr_ray = new_ray(true_origin, curr_position);
+            primary_rays[i * height + j] = curr_ray;
+            start_position->y++;
+        }
+        start_position->x++;
+    }
+
+    return primary_rays;
 }
 
 
