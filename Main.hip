@@ -195,8 +195,8 @@ __global__ void ray_trace_kernel(double* vertices_in, double* img_out, double si
 // -- so don't do that!
 __global__ void test_kernel() {
     printf("test kernel started\n");
-    vector* v = new_vector(1, 2, 3);
-    printf("%f\n", v->x);
+    vector* cam_origin = new_vector(0, 0, 0);
+    vector* cam_direction = new_vector(0, 0, 0);
     printf("test kernel finished\n");
 }
 

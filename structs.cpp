@@ -56,73 +56,56 @@ struct camera {
 // vector constructor
 __device__ vector* new_vector(double x, double y, double z) {
     vector* v = new vector[1];
-    v->x = x;
-    v->y = y;
-    v->z = z;
+    v[0] = {x, y, z};
     return v;
 }
 
 // color constructor
 __device__ color* new_color(double r, double g, double b) {
     color* c = new color[1];
-    c->r = r;
-    c->g = g;
-    c->b = b;
+    c[0] = {r, g, b};
     return c;
 }
 
 // material constructor
 __device__ material* new_material(color* material_color, double absorption, double reflection, double transmission, double diffusion) {
     material* m = new material[1];
-    m->material_color = material_color;
-    m->absorption = absorption;
-    m->reflection = reflection;
-    m->transmission = transmission;
-    m->diffusion = diffusion;
+    m[0] = {material_color, absorption, reflection, transmission, diffusion};
     return m;
 }
 
 // plane constructor
 __device__ plane* new_plane(vector* normal, double d) {
     plane* p = new plane[1];
-    p->normal = normal;
-    p->d = d;
+    p[0] = {normal, d};
     return p;
 }
 
 // ray constructor
 __device__ ray* new_ray(vector* origin, vector* direction) {
     ray* r = new ray[1];
-    r->origin = origin;
-    r->direction = direction;
+    r[0] = {origin, direction};
     return r;
 }
 
 // triangle constructor
 __device__ triangle* new_triangle(plane* surface_plane, material* surface_material, vector* a, vector* b, vector* c) {
     triangle* t = new triangle[1];
-    t->surface_plane = surface_plane;
-    t->surface_material = surface_material;
-    t->a = a;
-    t->b = b;
-    t->c = c;
+    t[0] = {surface_plane, surface_material, a, b, c};
     return t;
 }
 
 // dimensions constructor
 __device__ dimensions* new_dimensions(int width, int height) {
     dimensions* d = new dimensions[1];
-    d->width = width;
-    d->height = height;
+    d[0] = {width, height};
     return d;
 }
 
 // camera constructor
 __device__ camera* new_camera(vector* origin, vector* rotation, double fov_scale) {
     camera* c = new camera[1];
-    c->origin = origin;
-    c->rotation = rotation;
-    c->fov_scale = fov_scale;
+    c[0] = {origin, rotation, fov_scale};
     return c;
 }
 
