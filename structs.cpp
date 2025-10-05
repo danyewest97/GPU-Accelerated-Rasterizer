@@ -220,6 +220,11 @@ __device__ void normalize(vector* v) {
     v->z /= mag;
 }
 
+// Returns the dot product of the two given vectors
+__device__ double dot(vector* v, vector* w) {
+    return (v->x * w->x) + (v->y * w->y) + (v->z * w->z);
+}
+
 
 // color methods
 
@@ -231,9 +236,40 @@ __device__ void normalize(vector* v) {
 
 
 // ray methods
-// Returns the t-value (or distance)
-__device__ double ray_plane_intersection_t() {
+// Returns the t-value (or distance) where the given ray intersects the given plane
+// If an intersection point exists, has_intersection will be set to true, otherwise (i.e. if plane is behind ray or if plane and ray are parallel),
+// has_intersection will be set to false (if there is no intersection, the function will also return 0)
+// To find the intersection point, we need to plug in the ray components (parameterized using the parameter t) into the plane equation and solve.
+// For the ray components to be "paramaterized," it means that the origin and direction x-, y-, and z-values are expressed in terms of a constant "t."
+// Changing this "t" constant gives x-, y-, and z-values corresponding to the point along the ray that is equal to origin + t * direction.
+// To express x-, y-, and z-values in terms of t: x = x0 + xt, y = y0 + yt, and z = z0 + zt, where (x0, y0, z0) is the origin and (xt, yt, zt) is the
+// direction of the ray. Substituting these into the plane's equation ax + by + cz + d = 0 and solving gives us the intersection point.
+__device__ double ray_plane_intersection_t(ray* r, plane* p, bool* has_intersection) {
+    if (dot(r->direction, p->normal) == 0) {
+        *has_intersection = false;
+        return 0;
+    }
+    double a = p->normal->x;
+    double b = p->normal->y;
+    double c = p->normal->z;
+    double d = p->d;
 
+    double x0 = r->origin->x;
+    double y0 = r->origin->y;
+    double z0 = r->origin->z;
+    
+    double xt = r->direction->x;
+    double yt = r->direction->y;
+    double zt = r->direction->z;
+
+    
+    double left = -((a * xt) + (b * yt) + (c * zt));                    // The total t-values added up in the ray-plane equation being solved -- this 
+                                                                        // is negative because we are subtracting the values from the left side of the 
+                                                                        // equation to the right side of the equation
+    double right = (a * x0) + (b * y0) + (c * z0) + d;                  // The total constants added up in the ray-plane equation being solved
+
+
+    return 1;
 }
 
 // triangle methods
