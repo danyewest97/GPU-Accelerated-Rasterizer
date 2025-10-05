@@ -163,7 +163,19 @@ __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
     for (int i = 0; i < width; i++) {
         for (int j = 0; j < height; j++) {
             vector* curr_position = clone_vector(start_position);
-            ray* curr_ray = new_ray(true_origin, curr_position);
+            ray* curr_ray = new_ray(true_origin, curr_position);            // Creating the initial ray, not yet conformed to the camera's orientation
+
+            add_vectors(curr_ray->origin, cam_origin);                      // Orienting the ray to be lined up properly with the camera (translating 
+            // to the camera's origin)
+            // TODO: Make this into one operation, by precalculating the single matrix needed for all three rotations and only using that matrix
+            rotate_x(curr_ray->direction, true_origin, cam_normal->x);      // Rotating the ray to face the same direction as the camera -- using 
+                                                                            // true_origin instead of cam_origin because the direction of the ray 
+                                                                            // determines where it points from its origin, so it is not 
+                                                                            // location-dependent and should therefore be rotated about (0, 0, 0)
+            rotate_y(curr_ray->direction, true_origin, cam_normal->y);
+            rotate_z(curr_ray->direction, true_origin, cam_normal->z);
+            
+
             primary_rays[i * height + j] = curr_ray;
             start_position->y++;
         }
