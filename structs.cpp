@@ -121,3 +121,87 @@ __device__ vector* clone_vector(vector* v) {
 __device__ void print_vector(vector* v) {
     printf("(%f, %f, %f)", v->x, v->y, v->z);
 }
+
+
+
+
+
+
+
+
+
+// // Custom methods for structs
+// Vector methods
+__device__ void transform_vector(double* matrix, vector* v) {
+    double x = v->x;
+    double y = v->y;
+    double z = v->z;
+    double result[] = {(matrix[0] + matrix[1] + matrix[2]) * x, 
+                      (matrix[3] + matrix[4] + matrix[5]) * y,
+                      (matrix[6] + matrix[7] + matrix[8]) * z};
+    v->x = result[0];
+    v->y = result[1];
+    v->z = result[2];
+}
+
+
+// Subtracts the second vector from the first vector
+__device__ void sub_vectors(vector* v, vector* w) {
+    v->x -= w->x;
+    v->y -= w->y;
+    v->z -= w->z;
+}
+
+// Adds the second vector to the first vector
+__device__ void add_vectors(vector* v, vector* w) {
+    v->x += w->x;
+    v->y += w->y;
+    v->z += w->z;
+}
+
+
+// 3D vector rotation methods that rotate vector v around the vector center by the given radians, on the respective axis
+__device__ void rotate_x(vector* v, vector* center, double radians) {
+    double sine = sin(radians);
+    double cosine = cos(radians);
+    
+    double transformation_matrix[] = {
+        1, 0, 0,
+        0, cosine, -sine,
+        0, sine, cosine
+    };
+    
+    sub_vectors(v, center);
+    transform_vector(transformation_matrix, v);
+    add_vectors(v, center);
+}
+
+__device__ void rotate_y(vector* v, vector* center, double radians) {
+    double sine = sin(radians);
+    double cosine = cos(radians);
+    
+    double transformation_matrix[] = {
+        cosine, 0, sine,
+        0, 1, 0,
+        -sine, 0, cosine
+    };
+    
+    sub_vectors(v, center);
+    transform_vector(transformation_matrix, v);
+    add_vectors(v, center);
+}
+
+__device__ void rotate_z(vector* v, vector* center, double radians) {
+    double sine = sin(radians);
+    double cosine = cos(radians);
+
+    double transformation_matrix[] = {
+        cosine, -sine, 0,
+        sine, cosine, 0,
+        0, 0, 1
+    };
+    
+    sub_vectors(v, center);
+    transform_vector(transformation_matrix, v);
+    add_vectors(v, center);
+}
