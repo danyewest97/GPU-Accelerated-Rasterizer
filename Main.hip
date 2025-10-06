@@ -140,9 +140,10 @@ __global__ void test_kernel() {
 
     int width = 10;
     int height = 10;
-    dimensions* img_dimensions = new_dimensions(10, 10);
+    int num_rays = width * height;
+    dimensions* img_dimensions = new_dimensions(width, height);
 
-    ray** main_cam_rays = generate_camera_rays(main_cam, img_dimensions);
+    // ray** main_cam_rays = (ray**) malloc(num_rays * sizeof(ray));
 
     printf("%f\n", magnitude(cam_origin));
 
@@ -158,6 +159,9 @@ __global__ void test_kernel() {
 
 void run()
 {
+    int extra_memory_to_allocate = 200000000;               // Allocating 200 MB of extra memory (just in case -- may increase to 2 GB later but 200  
+                                                            // MB sounds good for now)
+
     test_kernel<<<
         dim3(1),
         dim3(1),
