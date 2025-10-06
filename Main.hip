@@ -13,6 +13,12 @@ using namespace std; // Makes it so I don't have to put std:: before everything!
 // Custom/local library files
 #include "structs.cpp" // Includes all of the required structs and their constructors, plus some methods for them
 
+// #include "arrays.cpp" // Includes all of the required structs and their constructors, plus some methods for them
+// NOTE: Convention will be to use custom-made array types (in arrays.cpp) for ALL arrays, and only using pointers when the pointer is pointing to a 
+// SINGLE value and not multiple. This allows for bounds-checking and is much safer. --EDIT: Leaving as a suggestion for now, may implement later if it
+// is necessary but I realized while thinking it over that it may end up being easier to just provide a length argument whenever we pass pointers of 
+// unknown length, and implement bounds-checking using that length manually instead of making custom methods to do it
+
 
 // Precondition: Matrices must be compatible for multiplication
 // TODO: Confirm that matrix multiplication algorithm, specifically matrix indices, are correct, and create a standard for how matrices should be 
