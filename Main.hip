@@ -123,15 +123,16 @@ __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
 
 
 
-__device__ ray* generate_camera_ray(camera* curr_cam, dimensions* img_dims, int ray_x, int ray_y) {
+__device__ ray* generate_camera_ray(camera* curr_cam, dimensions* img_dim, int pixel_x, int pixel_y) {
     vector* cam_origin = curr_cam->origin;
     vector* cam_normal = curr_cam->rotation;
-    double fov_scale = curr_cam->fov_scale;
+    int* width = &img_dim->width;
+    int* height = &img_dim->height;
 
     // TODO: Confirm that rays need to be offset? Or should they just come directly from the camera origin with no offset? I think having an offset is 
     // correct
     // Note: may need optimizations for greater performance -- and either offload to CPU or do this in parallel (make new kernel for this?)
-    double* passthrough_plane_distance = &fov_scale;                        // Corresponds to the FOV scale of the camera (vertical and horizontal FOV 
+    double* passthrough_plane_distance = &curr_cam->fov_scale;              // Corresponds to the FOV scale of the camera (vertical and horizontal FOV 
                                                                             // values depend on the width and height of the camera), this is my own 
                                                                             // method for generating camera rays: imagine a plane that is fov_scale 
                                                                             // units from the camera pinhole/aperture, and we are drawing a ray to the 
@@ -143,9 +144,9 @@ __device__ ray* generate_camera_ray(camera* curr_cam, dimensions* img_dims, int 
 
     vector* true_origin = new_vector(0, 0, 0);                              // We will initially draw rays originating from (0, 0, 0), then translate 
                                                                             // and rotate them according to the camera's position
-    vector* ray_direction = new_vector(ray_x + 0.5,                         // Adding a 0.5 unit offset to position rays into the middle of each pixel,
-                                       ray_y + 0.5,                         // instead of the top-right corner without the offset
-                                       *passthrough_plane_distance);         
+    vector* ray_direction = new_vector((-*width / 2) + pixel_x + 0.5,        // Adding a 0.5 unit offset to position rays into the middle of each
+                                       (-*height / 2) + pixel_y + 0.5,       // pixel, instead of the top-right corner without the offset
+                                       *passthrough_plane_distance);
     
 
     ray* curr_ray = new_ray(true_origin, ray_direction);                    // Creating the initial ray, not yet conformed to the camera's orientation
@@ -194,8 +195,7 @@ __global__ void test_kernel() {
     ray* main_cam_ray = generate_camera_ray(main_cam, img_dimensions, 3, 3);
 
     print_vector(main_cam_ray->direction);
-
-    printf("%f\n", magnitude(cam_origin));
+    printf("\n");
 
     printf("test kernel finished\n");
 }
@@ -209,8 +209,6 @@ __global__ void test_kernel() {
 
 void run()
 {
-    int extra_memory_to_allocate = 200000000;               // Allocating 200 MB of extra memory (just in case -- may increase to 2 GB later but 200  
-                                                            // MB sounds good for now)
 
     test_kernel<<<
         dim3(1),
