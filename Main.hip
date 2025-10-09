@@ -123,7 +123,7 @@ __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
 
 
 
-__device__ ray** generate_camera_ray(camera* curr_cam, dimensions* img_dims, int ray_x, int ray_y) {
+__device__ ray* generate_camera_ray(camera* curr_cam, dimensions* img_dims, int ray_x, int ray_y) {
     vector* cam_origin = curr_cam->origin;
     vector* cam_normal = curr_cam->rotation;
     double fov_scale = curr_cam->fov_scale;
@@ -148,23 +148,23 @@ __device__ ray** generate_camera_ray(camera* curr_cam, dimensions* img_dims, int
                                        *passthrough_plane_distance);         
     
 
-    ray* curr_ray = new_ray(true_origin, ray_direction);            // Creating the initial ray, not yet conformed to the camera's orientation
+    ray* curr_ray = new_ray(true_origin, ray_direction);                    // Creating the initial ray, not yet conformed to the camera's orientation
 
-    add_vectors(curr_ray->origin, cam_origin);                      // Orienting the ray to be lined up properly with the camera (translating 
-                                                                    // to the camera's origin)
+    add_vectors(curr_ray->origin, cam_origin);                              // Orienting the ray to be lined up properly with the camera (translating 
+                                                                            // to the camera's origin)
 
     // TODO: Make this into one operation, by precalculating the single matrix needed for all three rotations and only using that matrix
-    rotate_x(curr_ray->direction, true_origin, cam_normal->x);      // Rotating the ray to face the same direction as the camera -- using 
-                                                                    // true_origin instead of cam_origin because the direction of the ray 
-                                                                    // determines where it points from its origin, so it is not 
-                                                                    // location-dependent and should therefore be rotated about (0, 0, 0)
+    rotate_x(curr_ray->direction, true_origin, cam_normal->x);              // Rotating the ray to face the same direction as the camera -- using 
+                                                                            // true_origin instead of cam_origin because the direction of the ray 
+                                                                            // determines where it points from its origin, so it is not 
+                                                                            // location-dependent and should therefore be rotated about (0, 0, 0)
     rotate_y(curr_ray->direction, true_origin, cam_normal->y);
     rotate_z(curr_ray->direction, true_origin, cam_normal->z);
-    normalize(curr_ray->direction);                                 // Normalizing the ray's direction so that distances returned from intersection methods will be 
-                                                                    // absolute and not scaled by the ray direction's length (the t-value, or distance, returned from the 
-                                                                    // ray-plane and ray-triangle intersection methods is dependent upon the ray direction's length, so if 
-                                                                    // that length is 1, the t-value returned will be the same as the Euclidean distance from the ray's 
-                                                                    // origin to the intersection point)
+    normalize(curr_ray->direction);                                         // Normalizing the ray's direction so that distances returned from intersection methods will be 
+                                                                            // absolute and not scaled by the ray direction's length (the t-value, or distance, returned from the 
+                                                                            // ray-plane and ray-triangle intersection methods is dependent upon the ray direction's length, so if 
+                                                                            // that length is 1, the t-value returned will be the same as the Euclidean distance from the ray's 
+                                                                            // origin to the intersection point)
 
     return curr_ray;
 }
@@ -191,7 +191,9 @@ __global__ void test_kernel() {
     int num_rays = width * height;
     dimensions* img_dimensions = new_dimensions(width, height);
 
-    // ray** main_cam_rays = (ray**) malloc(num_rays * sizeof(ray));
+    ray* main_cam_ray = generate_camera_ray(main_cam, img_dimensions, 3, 3);
+
+    print_vector(main_cam_ray->direction);
 
     printf("%f\n", magnitude(cam_origin));
 
