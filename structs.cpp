@@ -248,6 +248,8 @@ __device__ double ray_plane_intersection_t(ray* r, plane* p, bool* has_intersect
     if (dot(r->direction, p->normal) == 0) {
         *has_intersection = false;
         return 0;
+    } else {
+        *has_intersection = true;
     }
     double a = p->normal->x;
     double b = p->normal->y;
@@ -269,7 +271,7 @@ __device__ double ray_plane_intersection_t(ray* r, plane* p, bool* has_intersect
     double right = (a * x0) + (b * y0) + (c * z0) + d;                  // The total constants added up in the ray-plane equation being solved
 
 
-    return 1;
+    return right / left;
 }
 
 // triangle methods

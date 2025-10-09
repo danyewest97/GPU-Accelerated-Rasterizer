@@ -197,6 +197,11 @@ __global__ void test_kernel() {
     print_vector(main_cam_ray->direction);
     printf("\n");
 
+    plane* test_plane = new_plane(new_vector(0, 0, 1), -1);
+    bool* has_intersection = (bool*) malloc(1);
+    double t = ray_plane_intersection_t(main_cam_ray, test_plane, has_intersection);
+    printf("%f\n", t);
+
     printf("test kernel finished\n");
 }
 
