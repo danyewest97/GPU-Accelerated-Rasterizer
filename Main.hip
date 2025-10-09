@@ -122,6 +122,54 @@ __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
 }
 
 
+
+__device__ ray** generate_camera_ray(camera* curr_cam, dimensions* img_dims, int ray_x, int ray_y) {
+    vector* cam_origin = curr_cam->origin;
+    vector* cam_normal = curr_cam->rotation;
+    double fov_scale = curr_cam->fov_scale;
+
+    // TODO: Confirm that rays need to be offset? Or should they just come directly from the camera origin with no offset? I think having an offset is 
+    // correct
+    // Note: may need optimizations for greater performance -- and either offload to CPU or do this in parallel (make new kernel for this?)
+    double* passthrough_plane_distance = &fov_scale;                        // Corresponds to the FOV scale of the camera (vertical and horizontal FOV 
+                                                                            // values depend on the width and height of the camera), this is my own 
+                                                                            // method for generating camera rays: imagine a plane that is fov_scale 
+                                                                            // units from the camera pinhole/aperture, and we are drawing a ray to the 
+                                                                            // centers of each of the cells on this plane -- the further away this 
+                                                                            // plane gets, the more clustered the rays are, so the smaller the FOV, 
+                                                                            // and vice versa for when the plane gets closer to the camera.
+                                                                            // I chose to do it this way because it is very intuitive to me and 
+                                                                            // incredibly easy to implement, since no rotation is involved
+
+    vector* true_origin = new_vector(0, 0, 0);                              // We will initially draw rays originating from (0, 0, 0), then translate 
+                                                                            // and rotate them according to the camera's position
+    vector* ray_direction = new_vector(ray_x + 0.5,                         // Adding a 0.5 unit offset to position rays into the middle of each pixel,
+                                       ray_y + 0.5,                         // instead of the top-right corner without the offset
+                                       *passthrough_plane_distance);         
+    
+
+    ray* curr_ray = new_ray(true_origin, ray_direction);            // Creating the initial ray, not yet conformed to the camera's orientation
+
+    add_vectors(curr_ray->origin, cam_origin);                      // Orienting the ray to be lined up properly with the camera (translating 
+                                                                    // to the camera's origin)
+
+    // TODO: Make this into one operation, by precalculating the single matrix needed for all three rotations and only using that matrix
+    rotate_x(curr_ray->direction, true_origin, cam_normal->x);      // Rotating the ray to face the same direction as the camera -- using 
+                                                                    // true_origin instead of cam_origin because the direction of the ray 
+                                                                    // determines where it points from its origin, so it is not 
+                                                                    // location-dependent and should therefore be rotated about (0, 0, 0)
+    rotate_y(curr_ray->direction, true_origin, cam_normal->y);
+    rotate_z(curr_ray->direction, true_origin, cam_normal->z);
+    normalize(curr_ray->direction);                                 // Normalizing the ray's direction so that distances returned from intersection methods will be 
+                                                                    // absolute and not scaled by the ray direction's length (the t-value, or distance, returned from the 
+                                                                    // ray-plane and ray-triangle intersection methods is dependent upon the ray direction's length, so if 
+                                                                    // that length is 1, the t-value returned will be the same as the Euclidean distance from the ray's 
+                                                                    // origin to the intersection point)
+
+    return curr_ray;
+}
+
+
 __global__ void ray_trace_kernel(double* vertices_in, double* img_out, double size, double triangles_per_thread, double img_width, double img_height) {
     int global_index = threadIdx.x + blockIdx.x * blockDim.x;
     
