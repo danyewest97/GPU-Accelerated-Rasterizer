@@ -18,7 +18,7 @@ struct material {
 
 // A 3D plane with components a, b, c, d, expressed by equation ax + by + cz + d = 0
 struct plane {
-    vector* normal;                      // vector to store the components of the plane's normal as (a, b, c)
+    vector* normal;                     // vector to store the components of the plane's normal as (a, b, c)
     double d;
 };
 
@@ -30,8 +30,8 @@ struct ray {
 
 // A 3D triangle defined by the 3 vectors a, b, and c, with the given material and plane
 struct triangle {
-    plane* surface_plane;                // the 3D plane that the triangle sits on
-    material* surface_material;          // the material that the triangle is "made out of," defining how light rays should interact with the triangle
+    plane* surface_plane;               // the 3D plane that the triangle sits on
+    material* surface_material;         // the material that the triangle is "made out of," defining how light rays should interact with the triangle
     vector* a;
     vector* b;
     vector* c;
@@ -44,10 +44,10 @@ struct dimensions {
 
 // 3D camera, defines where the camera rays originate and in which direction they radiate, to control where the viewport is looking
 struct camera {
-    vector* origin;                      // The 3D point where all camera rays originate from
-    vector* rotation;                    // The direction where camera rays radiate from the origin, with components (x_rotation, y_rotation, 
+    vector* origin;                     // The 3D point where all camera rays originate from
+    vector* rotation;                   // The direction where camera rays radiate from the origin, with components (x_rotation, y_rotation, 
                                         // z_rotation)
-    double fov_scale;                  // The field-of-view parameters, expressed in radians, that define how far left/right or up/down the camera 
+    double fov_scale;                   // The field-of-view parameters, expressed in radians, that define how far left/right or up/down the camera 
                                         // can see
 };
 
@@ -236,6 +236,39 @@ __device__ double dot(vector* v, vector* w) {
 
 
 // ray methods
+// Checks if the point (i, j) is contained in the triangle defined by the points (x1, y1), (x2, y2), and (x3, y3) -- required dependency for
+// ray-triangle intersection method below.
+// Works by looking at the triangle in 2D (as if it had been orthogonally projected to a 2D plane) and seeing if the given point lies on the same side
+// of all 3 of the triangles sides, using the dot products of the vectors that make up the triangle (rotating the point 90 degrees before taking the
+// dot product, so that we get which side the point is on as the sign of the dot product, instead of whether the vector that encodes the point is
+// aligned with the triangle leg vectors that we are checking).
+// Basic intuition is to imagine walking clockwise along the outside of the triangle, and if the point being checked stays on your righthand side the
+// entire time you are walking, then it must be inside the triangle and not outside
+__device__ bool contains(double i, double j, double x1, double y1, double x2, double y2, double x3, double y3) {
+    double dotAB = -(i - y1) * (x2 - x1) + (j - x1) * (y2 - y1);
+    double dotBC = -(i - y2) * (x3 - x2) + (j - x2) * (y3 - y2);
+    double dotCA = -(i - y3) * (x1 - x3) + (j - x3) * (y1 - y3);
+    
+    bool allPos = dotAB >= 0 && dotBC >= 0 && dotCA >= 0;
+    bool allNeg = dotAB <= 0 && dotBC <= 0 && dotCA <= 0;
+    
+    return allPos || allNeg;
+}
+
+// Same method as above using pointers to save memory on unnecessary variable declarations (hopefully -- I'm not too familiar with C++ still so I'm not
+// sure if this is actually helping or hurting or if the compiler figures it all out no matter what and it's really the same either way)
+__device__ bool contains(double* i, double* j, double* x1, double* y1, double* x2, double* y2, double* x3, double* y3) {
+    double dotAB = -(*i - *y1) * (*x2 - *x1) + (*j - *x1) * (*y2 - *y1);
+    double dotBC = -(*i - *y2) * (*x3 - *x2) + (*j - *x2) * (*y3 - *y2);
+    double dotCA = -(*i - *y3) * (*x1 - *x3) + (*j - *x3) * (*y1 - *y3);
+    
+    bool allPos = dotAB >= 0 && dotBC >= 0 && dotCA >= 0;
+    bool allNeg = dotAB <= 0 && dotBC <= 0 && dotCA <= 0;
+    
+    return allPos || allNeg;
+}
+
+
 // Returns the t-value (or distance) where the given ray intersects the given plane
 // If an intersection point exists, has_intersection will be set to true, otherwise (i.e. if plane is behind ray or if plane and ray are parallel),
 // has_intersection will be set to false (if there is no intersection, the function will also return 0)
@@ -276,6 +309,90 @@ __device__ double ray_plane_intersection_t(ray* r, plane* p, bool* has_intersect
     return right / left;                                                // After the last step, the equation is something like c = kt, where c and k are some given constants, and 
                                                                         // we need to isolate t so we divide both sides by k to get t = c / k
 }
+
+
+// Gets the 3D point from a ray at a given t value (where the ray equation is O + vt, where O is the ray origin and v is the ray's direction -- this
+// function just plugs in a given t and returns the 3D point that results from the equation)
+__device__ vector* get_point_from_t(ray* r, double* t) {
+    vector* origin = r->origin;
+    vector* direction = r->direction;
+    vector* result = new_vector(origin->x + (direction->x * *t),
+                                origin->y + (direction->y * *t),
+                                origin->z + (direction->z * *t));
+    return result;
+}
+
+
+// In the future, will use the Möller–Trumbore ray-triangle intersection algorithm, actually much simpler than I had previously thought.
+// https://en.wikipedia.org/wiki/Möller–Trumbore_intersection_algorithm
+// Basically, instead of using a precalculated plane normal for the plane the given triangle sits on, we express the plane in terms of two of the 
+// vectors that make up the legs of the triangle.
+// By scaling these two leg vectors by the barycentric coordinates u and v of the triangle, we can essentially use them as basis vectors for the plane,
+// and describe any point on the plane with just u and v.
+// My explanation here is very lacking as I have just started understanding the Möller–Trumbore algorithm, so if you want more depth look at the linked
+// Wikipedia page, it explains much better than I can with just code comments.
+// As of now, still using same algorithm as above then just doing bounds-checking to see if the intersection point we find is inside the triangle
+// With this method, however, we return the actual coordinates of the 3D collision point (if it exists) and we return the t value of the collision 
+// through the t_out argument
+__device__ vector* ray_triangle_intersection_t(ray* r, triangle* t, bool* has_intersection, double* t_out) {
+    plane* p = t->surface_plane;
+    
+    if (dot(r->direction, p->normal) == 0) {
+        *has_intersection = false;
+        vector* result = new_vector(0, 0, 0);
+        *t_out = 0;
+        return result;
+    }
+
+    double a = p->normal->x;
+    double b = p->normal->y;
+    double c = p->normal->z;
+    double d = p->d;
+
+    double x0 = r->origin->x;
+    double y0 = r->origin->y;
+    double z0 = r->origin->z;
+    
+    double xt = r->direction->x;
+    double yt = r->direction->y;
+    double zt = r->direction->z;
+
+    
+    double left = -((a * xt) + (b * yt) + (c * zt));                    // The total t-values added up in the ray-plane equation being solved -- this 
+                                                                        // is negative because we are subtracting the values from the left side of the 
+                                                                        // equation to the right side of the equation
+    double right = (a * x0) + (b * y0) + (c * z0) + d;                  // The total constants added up in the ray-plane equation being solved
+                                                                        
+                                                                        
+
+
+    *t_out = right / left;                                            // After the last step, the equation is something like c = kt, where c and k 
+                                                                        // are some given constants, and we need to isolate t so we divide both sides 
+                                                                        // by k to get t = c / k
+    // Now we need to find the collision point's coordinates in 3D and 
+    vector* collision_point = get_point_from_t(r, t_out);
+
+    double* x1 = &t->a->x;
+    double* y1 = &t->a->y;
+    double* x2 = &t->b->x;
+    double* y2 = &t->b->y;
+    double* x3 = &t->c->x;
+    double* y3 = &t->c->y;
+    
+    double* i = &collision_point->x;
+    double* j = &collision_point->y;
+
+    *has_intersection = contains(i, j, x1, y1, x2, y2, x3, y3);
+    if (*has_intersection) {
+        return collision_point;
+    } else {
+        vector* result = new_vector(0, 0, 0);
+        *t_out = 0;
+        return result;
+    }
+}
+
+
 
 // triangle methods
 
