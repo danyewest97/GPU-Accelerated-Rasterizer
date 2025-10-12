@@ -11,7 +11,8 @@
 using namespace std; // Makes it so I don't have to put std:: before everything!
 
 // Custom/local library files
-#include "structs.cpp" // Includes all of the required structs and their constructors, plus some methods for them
+#include "main_structs.cpp" // Includes all of the required main structs and their constructors, plus some methods for them
+#include "specific_structs.cpp" // Includes all of the required more-specific structs and their constructors, plus some methods for them
 
 // #include "arrays.cpp" // Includes all of the required structs and their constructors, plus some methods for them
 // NOTE: Convention will be to use custom-made array types (in arrays.cpp) for ALL arrays, and only using pointers when the pointer is pointing to a 
@@ -28,20 +29,23 @@ __device__ void matrix_multiplication(double* matrix, double* vector, double* ou
     double y = vector[1];
     double z = vector[2];
     double result[] = {(matrix[0] + matrix[1] + matrix[2]) * x, 
-                      (matrix[3] + matrix[4] + matrix[5]) * y,
-                      (matrix[6] + matrix[7] + matrix[8]) * z};
+                       (matrix[3] + matrix[4] + matrix[5]) * y,
+                       (matrix[6] + matrix[7] + matrix[8]) * z};
     output[0] = result[0];
     output[1] = result[1];
     output[2] = result[2];
 }
 
 
+// __global__ 
 
-__global__ void trace_ray(int index, triangle* tris, color* output) {
 
+// Oh yeah, baby... this is where the magic happens
+__global__ void trace_ray(ray* primary_ray, triangle* triangles, color* output_color) {
+    
 }
 
-
+// Deprecated
 // Takes the given camera and image dimensions and generates the corresponding primary/camera rays for them
 __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
     vector* cam_origin = curr_cam->origin;
@@ -108,7 +112,7 @@ __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
 }
 
 
-
+// Same as above but only calculates a single ray, for parallel processing
 __device__ ray* generate_camera_ray(camera* curr_cam, dimensions* img_dim, int pixel_x, int pixel_y) {
     vector* cam_origin = curr_cam->origin;
     vector* cam_normal = curr_cam->rotation;

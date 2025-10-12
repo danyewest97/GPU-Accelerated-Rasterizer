@@ -1,5 +1,7 @@
-// A library file with all of the required structs and their constructors, plus some methods to use on them
+// A library file with all of the required main structs and their constructors, plus some methods to use on them
 
+// // These are the main, arbitrary structs. Structs designed for a more niche circumstance (such as a collision struct that holds a 
+// collision point vector, a collision triangle, and a collision distance) will be found in the specific_structs.cpp file
 // 3D vector with x-, y-, and z-values
 struct vector {
     double x, y, z;
