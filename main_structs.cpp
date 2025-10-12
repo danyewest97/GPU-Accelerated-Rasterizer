@@ -376,17 +376,18 @@ __device__ triangle* new_triangle(material* surface_material, vector* a, vector*
     // Now we need to calculate the shift of the plane, aka d in the plane's equation
     // We do this by substituting in the coordinates for a known point that lies on the plane. What points do we know? Well, any of the 3 vertices of 
     // the triangle will work, because they define the plane of the triangle so they by definition lie on it
-    double* a = &plane_normal->x;
-    double* b = &plane_normal->y;
-    double* c = &plane_normal->z;
+    double* plane_a = &plane_normal->x;
+    double* plane_b = &plane_normal->y;
+    double* plane_c = &plane_normal->z;
 
     double* x0 = &a->x;
     double* y0 = &a->y;
     double* z0 = &a->z;
 
-    double d = -((*a * *x0) + (*b * *y0) + (*c * *z0));                 // We are making the shift negative here because of how the plane 
-                                                                        // equation is arranged (in this code, at least): ax + by + cz + d = 0, where 
-                                                                        // we are plugging in known values for ax, by, and cz, and solving for d
+    double d = -((*plane_a * *x0) + (*plane_b * *y0) + (*plane_c * *z0));               // We are making the shift negative here because of how the 
+                                                                                        // plane equation is arranged (in this code, at least): ax + 
+                                                                                        // by + cz + d = 0, where we are plugging in known values for 
+                                                                                        // ax, by, and cz, and solving for d
     plane* surface_plane = new_plane(plane_normal, d);
     triangle* result = new_triangle(surface_plane, surface_material, a, b, c);
     return result;
