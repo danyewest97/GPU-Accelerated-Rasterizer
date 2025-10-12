@@ -48,92 +48,26 @@ struct dimensions {
 struct camera {
     vector* origin;                     // The 3D point where all camera rays originate from
     vector* rotation;                   // The direction where camera rays radiate from the origin, with components (x_rotation, y_rotation, 
-                                        // z_rotation)
+    // z_rotation)
     double fov_scale;                   // The field-of-view parameters, expressed in radians, that define how far left/right or up/down the camera 
-                                        // can see
+    // can see
 };
 
 
-// // Constructors for above-defined structs
-// vector constructor
+// // Constructors and methods for above-defined structs
+// vector constructor and methods
 __device__ vector* new_vector(double x, double y, double z) {
     vector* v = new vector[1];
     v[0] = {x, y, z};
     return v;
 }
 
-// color constructor
-__device__ color* new_color(double r, double g, double b) {
-    color* c = new color[1];
-    c[0] = {r, g, b};
-    return c;
-}
-
-// material constructor
-__device__ material* new_material(color* material_color, double absorption, double reflection, double transmission, double diffusion) {
-    material* m = new material[1];
-    m[0] = {material_color, absorption, reflection, transmission, diffusion};
-    return m;
-}
-
-// plane constructor
-__device__ plane* new_plane(vector* normal, double d) {
-    plane* p = new plane[1];
-    p[0] = {normal, d};
-    return p;
-}
-
-// ray constructor
-__device__ ray* new_ray(vector* origin, vector* direction) {
-    ray* r = new ray[1];
-    r[0] = {origin, direction};
-    return r;
-}
-
-// triangle constructor
-__device__ triangle* new_triangle(plane* surface_plane, material* surface_material, vector* a, vector* b, vector* c) {
-    triangle* t = new triangle[1];
-    t[0] = {surface_plane, surface_material, a, b, c};
-    return t;
-}
-
-// dimensions constructor
-__device__ dimensions* new_dimensions(int width, int height) {
-    dimensions* d = new dimensions[1];
-    d[0] = {width, height};
-    return d;
-}
-
-// camera constructor
-__device__ camera* new_camera(vector* origin, vector* rotation, double fov_scale) {
-    camera* c = new camera[1];
-    c[0] = {origin, rotation, fov_scale};
-    return c;
-}
-
-
-// Cloning methods
+// Makes a deep copy of/clones the given vector
 __device__ vector* clone_vector(vector* v) {
     return new_vector(v->x, v->y, v->z);
 }
 
-
-
-// Print methods for debugging
-__device__ void print_vector(vector* v) {
-    printf("(%f, %f, %f)", v->x, v->y, v->z);
-}
-
-
-
-
-
-
-
-
-
-// // Custom methods for structs
-// vector methods
+// Tranforms the given vector by the given matrix
 __device__ void transform_vector(double* matrix, vector* v) {
     double x = v->x;
     double y = v->y;
@@ -160,7 +94,6 @@ __device__ void add_vectors(vector* v, vector* w) {
     v->y += w->y;
     v->z += w->z;
 }
-
 
 // 3D vector rotation methods that rotate vector v around the vector center by the given radians, on the respective axis
 __device__ void rotate_x(vector* v, vector* center, double radians) {
@@ -196,7 +129,7 @@ __device__ void rotate_y(vector* v, vector* center, double radians) {
 __device__ void rotate_z(vector* v, vector* center, double radians) {
     double sine = sin(radians);
     double cosine = cos(radians);
-
+    
     double transformation_matrix[] = {
         cosine, -sine, 0,
         sine, cosine, 0,
@@ -227,17 +160,43 @@ __device__ double dot(vector* v, vector* w) {
     return (v->x * w->x) + (v->y * w->y) + (v->z * w->z);
 }
 
+// Returns the cross product of the two given vectors
+__device__ vector* cross(vector* v, vector* w) {
+    vector* result = new_vector((v->y * w->z) - (v->z * w->y),
+                                (v->z * w->x) - (v->x * w->z),
+                                (v->x * w->y) - (v->y * w->x));
+    return result;
+}
 
-// color methods
 
+// color constructor
+__device__ color* new_color(double r, double g, double b) {
+    color* c = new color[1];
+    c[0] = {r, g, b};
+    return c;
+}
 
-// material methods
+// material constructor
+__device__ material* new_material(color* material_color, double absorption, double reflection, double transmission, double diffusion) {
+    material* m = new material[1];
+    m[0] = {material_color, absorption, reflection, transmission, diffusion};
+    return m;
+}
 
+// plane constructor
+__device__ plane* new_plane(vector* normal, double d) {
+    plane* p = new plane[1];
+    p[0] = {normal, d};
+    return p;
+}
 
-// plane methods
+// ray constructor and methods
+__device__ ray* new_ray(vector* origin, vector* direction) {
+    ray* r = new ray[1];
+    r[0] = {origin, direction};
+    return r;
+}
 
-
-// ray methods
 // Checks if the point (i, j) is contained in the triangle defined by the points (x1, y1), (x2, y2), and (x3, y3) -- required dependency for
 // ray-triangle intersection method below.
 // Works by looking at the triangle in 2D (as if it had been orthogonally projected to a 2D plane) and seeing if the given point lies on the same side
@@ -393,6 +352,81 @@ __device__ vector* ray_triangle_intersection_t(ray* r, triangle* t, bool* has_in
         return result;
     }
 }
+
+
+// triangle constructor and methods
+__device__ triangle* new_triangle(plane* surface_plane, material* surface_material, vector* a, vector* b, vector* c) {
+    triangle* t = new triangle[1];
+    t[0] = {surface_plane, surface_material, a, b, c};
+    return t;
+}
+
+// Alternate triangle constructor that doesn't require a plane
+__device__ triangle* new_triangle(material* surface_material, vector* a, vector* b, vector* c) {
+    // Here we are taking the cross product of the vectors that make up two of the legs of the triangle to find the normal of the plane that the 
+    // triangle sits on, because both of them are by definition situated on the same plane as the triangle, to find a vector that is parallel to both, 
+    // which is equivalent to the normal of the plane
+    vector* ab = clone_vector(b);
+    vector* bc = clone_vector(c);
+    sub_vectors(b, a);
+    sub_vectors(c, b);
+
+    vector* plane_normal = cross(ab, bc);
+    
+    // Now we need to calculate the shift of the plane, aka d in the plane's equation
+    // We do this by substituting in the coordinates for a known point that lies on the plane. What points do we know? Well, any of the 3 vertices of 
+    // the triangle will work, because they define the plane of the triangle so they by definition lie on it
+    double* a = &plane_normal->x;
+    double* b = &plane_normal->y;
+    double* c = &plane_normal->z;
+
+    double* x0 = &a->x;
+    double* y0 = &a->y;
+    double* z0 = &a->z;
+
+    double d = -((*a * *x0) + (*b * *y0) + (*c * *z0));                 // We are making the shift negative here because of how the plane 
+                                                                        // equation is arranged (in this code, at least): ax + by + cz + d = 0, where 
+                                                                        // we are plugging in known values for ax, by, and cz, and solving for d
+    plane* surface_plane = new_plane(plane_normal, d);
+    triangle* result = new_triangle(surface_plane, surface_material, a, b, c);
+    return result;
+}
+
+// Alternate triangle constructor that doesn't require a plane or a material -- currently deprecated, only used for geometric calculations if needed
+// __device__ triangle* new_triangle(vector* a, vector* b, vector* c) {
+//     triangle* t = new triangle[1];
+//     t[0] = {surface_plane, surface_material, a, b, c};
+//     return t;
+// }
+
+// dimensions constructor
+__device__ dimensions* new_dimensions(int width, int height) {
+    dimensions* d = new dimensions[1];
+    d[0] = {width, height};
+    return d;
+}
+
+// camera constructor
+__device__ camera* new_camera(vector* origin, vector* rotation, double fov_scale) {
+    camera* c = new camera[1];
+    c[0] = {origin, rotation, fov_scale};
+    return c;
+}
+
+
+
+
+
+// Print methods for debugging
+__device__ void print_vector(vector* v) {
+    printf("(%f, %f, %f)", v->x, v->y, v->z);
+}
+
+
+
+
+
+
 
 
 
