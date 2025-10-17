@@ -390,6 +390,9 @@ __device__ triangle* new_triangle(material* surface_material, vector* a, vector*
                                                                                         // ax, by, and cz, and solving for d
     plane* surface_plane = new_plane(plane_normal, d);
     triangle* result = new_triangle(surface_plane, surface_material, a, b, c);
+
+    // Deleting local variables to free memory
+    delete plane_a, plane_b, plane_c, x0, y0, z0, ab, bc;
     return result;
 }
 
