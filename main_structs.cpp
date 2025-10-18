@@ -4,10 +4,13 @@
 // collision point vector, a collision triangle, and a collision distance) will be found in the specific_structs.cpp file
 // 3D vector with x-, y-, and z-values
 struct vector {
-    double* x;
-    double* y;
-    double* z;
+    double* x = new double[1];
+    double* y = new double[1];
+    double* z = new double[1];
 
+    __device__ vector() {}              // An empty constructor, only used for when allocating memory for a vector to take up in the future (i.e. 
+                                        // through "new vector[1]")
+    
     __device__ vector(double _x, double _y, double _z) {
         *x = _x;
         *y = _y;
@@ -58,11 +61,19 @@ struct dimensions {
 
 // 3D camera, defines where the camera rays originate and in which direction they radiate, to control where the viewport is looking
 struct camera {
-    vector* origin;                     // The 3D point where all camera rays originate from
-    vector* rotation;                   // The direction where camera rays radiate from the origin, with components (x_rotation, y_rotation, 
+    vector* origin = new vector[1];     // The 3D point where all camera rays originate from
+    vector* rotation = new vector[1];   // The direction where camera rays radiate from the origin, with components (x_rotation, y_rotation, 
     // z_rotation)
-    double fov_scale;                   // The field-of-view parameters, expressed in radians, that define how far left/right or up/down the camera 
+    double* fov_scale = new double[1];  // The field-of-view parameters, expressed in radians, that define how far left/right or up/down the camera 
     // can see
+
+    __device__ camera() {}
+
+    __device__ camera(vector* _origin, vector* _rotation, double _fov_scale) {
+        origin = _origin;
+        rotation = _rotation;
+        *fov_scale = _fov_scale;
+    }
 };
 
 // Makes a deep copy of/clones the given vector (where new vector values are totally separate from the old vector's values)
@@ -411,13 +422,6 @@ __device__ dimensions* new_dimensions(int width, int height) {
     dimensions* d = new dimensions[1];
     d[0] = {width, height};
     return d;
-}
-
-// camera constructor
-__device__ camera* new_camera(vector* origin, vector* rotation, double fov_scale) {
-    camera* c = new camera[1];
-    c[0] = {origin, rotation, fov_scale};
-    return c;
 }
 
 

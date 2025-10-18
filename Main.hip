@@ -50,7 +50,7 @@ __global__ void trace_ray(ray* primary_ray, triangle* triangles, color* output_c
 __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
     vector* cam_origin = curr_cam->origin;
     vector* cam_normal = curr_cam->rotation;
-    double fov_scale = curr_cam->fov_scale;
+    double* fov_scale = curr_cam->fov_scale;
     
     int width = img_dims->width;
     int height = img_dims->height;
@@ -63,7 +63,7 @@ __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
     double initial_horizontal_offset = -width / 2 + 0.5;                    // Adding 0.5 to each offset to move the rays to be in the middle of each 
                                                                             // pixel
     double initial_vertical_offset = -height / 2 + 0.5;
-    double passthrough_plane_distance = fov_scale;                          // Corresponds to the FOV scale of the camera (vertical and horizontal FOV 
+    double* passthrough_plane_distance = fov_scale;                          // Corresponds to the FOV scale of the camera (vertical and horizontal FOV 
                                                                             // values depend on the width and height of the camera), this is my own 
                                                                             // method for generating camera rays: imagine a plane that is fov_scale 
                                                                             // units from the camera pinhole/aperture, and we are drawing a ray to the 
@@ -74,7 +74,7 @@ __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
 
     vector* start_position = new vector(initial_horizontal_offset, 
                                         initial_vertical_offset, 
-                                        passthrough_plane_distance);        // The position on the plane (described above) that we start on, drawing
+                                        *passthrough_plane_distance);        // The position on the plane (described above) that we start on, drawing
                                                                             // a ray from the camera to this position will generate our camera rays
     vector* true_origin = new vector(0, 0, 0);                              // We will initially draw rays originating from (0, 0, 0), then translate 
                                                                             // and rotate them according to the camera's position
@@ -101,7 +101,6 @@ __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
                                                                             // ray-plane and ray-triangle intersection methods is dependent upon the ray direction's length, so if 
                                                                             // that length is 1, the t-value returned will be the same as the Euclidean distance from the ray's 
                                                                             // origin to the intersection point)
-
             primary_rays[i * height + j] = curr_ray;
             *start_position->y++;
         }
@@ -122,28 +121,28 @@ __device__ ray* generate_camera_ray(camera* curr_cam, dimensions* img_dim, int p
     // TODO: Confirm that rays need to be offset? Or should they just come directly from the camera origin with no offset? I think having an offset is 
     // correct
     // Note: may need optimizations for greater performance -- and either offload to CPU or do this in parallel (make new kernel for this?)
-    double* passthrough_plane_distance = &curr_cam->fov_scale;              // Corresponds to the FOV scale of the camera (vertical and horizontal FOV 
-                                                                            // values depend on the width and height of the camera), this is my own 
-                                                                            // method for generating camera rays: imagine a plane that is fov_scale 
-                                                                            // units from the camera pinhole/aperture, and we are drawing a ray to the 
-                                                                            // centers of each of the cells on this plane -- the further away this 
-                                                                            // plane gets, the more clustered the rays are, so the smaller the FOV, 
-                                                                            // and vice versa for when the plane gets closer to the camera.
-                                                                            // I chose to do it this way because it is very intuitive to me and 
-                                                                            // incredibly easy to implement, since no rotation is involved
-
-    vector* true_origin = new vector(0, 0, 0);                              // We will initially draw rays originating from (0, 0, 0), then translate 
-                                                                            // and rotate them according to the camera's position
-    vector* ray_direction = new vector((-*width / 2) + pixel_x + 0.5,        // Adding a 0.5 unit offset to position rays into the middle of each
-                                       (-*height / 2) + pixel_y + 0.5,       // pixel, instead of the top-right corner without the offset
-                                       *passthrough_plane_distance);
+    double* passthrough_plane_distance = curr_cam->fov_scale;              // Corresponds to the FOV scale of the camera (vertical and horizontal FOV 
+    // values depend on the width and height of the camera), this is my own 
+    // method for generating camera rays: imagine a plane that is fov_scale 
+    // units from the camera pinhole/aperture, and we are drawing a ray to the 
+    // centers of each of the cells on this plane -- the further away this 
+    // plane gets, the more clustered the rays are, so the smaller the FOV, 
+    // and vice versa for when the plane gets closer to the camera.
+    // I chose to do it this way because it is very intuitive to me and 
+    // incredibly easy to implement, since no rotation is involved
     
-
+    vector* true_origin = new vector(0, 0, 0);                              // We will initially draw rays originating from (0, 0, 0), then translate 
+    // and rotate them according to the camera's position
+    vector* ray_direction = new vector((-(double) (*width) / 2) + pixel_x + 0.5,        // Adding a 0.5 unit offset to position rays into the middle of each
+    (-(double) *height / 2) + pixel_y + 0.5,       // pixel, instead of the top-right corner without the offset
+    *passthrough_plane_distance);
+    
+    
     ray* curr_ray = new_ray(true_origin, ray_direction);                    // Creating the initial ray, not yet conformed to the camera's orientation
-
+    
     add_vectors(curr_ray->origin, cam_origin);                              // Orienting the ray to be lined up properly with the camera (translating 
-                                                                            // to the camera's origin)
-
+    // to the camera's origin)
+    
     // TODO: Make this into one operation, by precalculating the single matrix needed for all three rotations and only using that matrix
     rotate_x(curr_ray->direction, true_origin, *cam_normal->x);              // Rotating the ray to face the same direction as the camera -- using 
                                                                             // true_origin instead of cam_origin because the direction of the ray 
@@ -175,7 +174,7 @@ __global__ void test_kernel() {
     vector* cam_origin = new vector(0, 0, 0);
     vector* cam_direction = new vector(0, 0, 0);
     double fov_scale = 1;
-    camera* main_cam = new_camera(cam_origin, cam_direction, fov_scale);
+    camera* main_cam = new camera(cam_origin, cam_direction, fov_scale);
 
     int width = 10;
     int height = 10;
@@ -183,11 +182,6 @@ __global__ void test_kernel() {
     dimensions* img_dimensions = new_dimensions(width, height);
 
     ray* main_cam_ray = generate_camera_ray(main_cam, img_dimensions, 3, 3);
-
-
-    print_vector(main_cam_ray->direction);
-    print_vector(new vector(1, 1, 2));
-    printf("\n");
 
     plane* test_plane = new_plane(new vector(0, 0, 1), -1);
     bool* has_intersection = (bool*) malloc(1);
