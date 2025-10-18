@@ -72,11 +72,11 @@ __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
                                                                             // and vice versa for when the plane gets closer to the camera.
                                                                             // I chose to do it this way because it is very intuitive to me and incredibly easy to implement, since no rotation is involved
 
-    vector* start_position = new_vector(initial_horizontal_offset, 
+    vector* start_position = new vector(initial_horizontal_offset, 
                                         initial_vertical_offset, 
                                         passthrough_plane_distance);        // The position on the plane (described above) that we start on, drawing
                                                                             // a ray from the camera to this position will generate our camera rays
-    vector* true_origin = new_vector(0, 0, 0);                              // We will initially draw rays originating from (0, 0, 0), then translate 
+    vector* true_origin = new vector(0, 0, 0);                              // We will initially draw rays originating from (0, 0, 0), then translate 
                                                                             // and rotate them according to the camera's position
     ray** primary_rays = new ray*[num_rays];                                // Also called camera rays, primary rays are the resulting, final rays 
                                                                             // that we will use for ray casting
@@ -90,12 +90,12 @@ __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
             add_vectors(curr_ray->origin, cam_origin);                      // Orienting the ray to be lined up properly with the camera (translating 
             // to the camera's origin)
             // TODO: Make this into one operation, by precalculating the single matrix needed for all three rotations and only using that matrix
-            rotate_x(curr_ray->direction, true_origin, cam_normal->x);      // Rotating the ray to face the same direction as the camera -- using 
+            rotate_x(curr_ray->direction, true_origin, *cam_normal->x);      // Rotating the ray to face the same direction as the camera -- using 
                                                                             // true_origin instead of cam_origin because the direction of the ray 
                                                                             // determines where it points from its origin, so it is not 
                                                                             // location-dependent and should therefore be rotated about (0, 0, 0)
-            rotate_y(curr_ray->direction, true_origin, cam_normal->y);
-            rotate_z(curr_ray->direction, true_origin, cam_normal->z);
+            rotate_y(curr_ray->direction, true_origin, *cam_normal->y);
+            rotate_z(curr_ray->direction, true_origin, *cam_normal->z);
             normalize(curr_ray->direction);                                 // Normalizing the ray's direction so that distances returned from intersection methods will be 
                                                                             // absolute and not scaled by the ray direction's length (the t-value, or distance, returned from the 
                                                                             // ray-plane and ray-triangle intersection methods is dependent upon the ray direction's length, so if 
@@ -103,9 +103,9 @@ __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
                                                                             // origin to the intersection point)
 
             primary_rays[i * height + j] = curr_ray;
-            start_position->y++;
+            *start_position->y++;
         }
-        start_position->x++;
+        *start_position->x++;
     }
 
     return primary_rays;
@@ -132,9 +132,9 @@ __device__ ray* generate_camera_ray(camera* curr_cam, dimensions* img_dim, int p
                                                                             // I chose to do it this way because it is very intuitive to me and 
                                                                             // incredibly easy to implement, since no rotation is involved
 
-    vector* true_origin = new_vector(0, 0, 0);                              // We will initially draw rays originating from (0, 0, 0), then translate 
+    vector* true_origin = new vector(0, 0, 0);                              // We will initially draw rays originating from (0, 0, 0), then translate 
                                                                             // and rotate them according to the camera's position
-    vector* ray_direction = new_vector((-*width / 2) + pixel_x + 0.5,        // Adding a 0.5 unit offset to position rays into the middle of each
+    vector* ray_direction = new vector((-*width / 2) + pixel_x + 0.5,        // Adding a 0.5 unit offset to position rays into the middle of each
                                        (-*height / 2) + pixel_y + 0.5,       // pixel, instead of the top-right corner without the offset
                                        *passthrough_plane_distance);
     
@@ -145,12 +145,12 @@ __device__ ray* generate_camera_ray(camera* curr_cam, dimensions* img_dim, int p
                                                                             // to the camera's origin)
 
     // TODO: Make this into one operation, by precalculating the single matrix needed for all three rotations and only using that matrix
-    rotate_x(curr_ray->direction, true_origin, cam_normal->x);              // Rotating the ray to face the same direction as the camera -- using 
+    rotate_x(curr_ray->direction, true_origin, *cam_normal->x);              // Rotating the ray to face the same direction as the camera -- using 
                                                                             // true_origin instead of cam_origin because the direction of the ray 
                                                                             // determines where it points from its origin, so it is not 
                                                                             // location-dependent and should therefore be rotated about (0, 0, 0)
-    rotate_y(curr_ray->direction, true_origin, cam_normal->y);
-    rotate_z(curr_ray->direction, true_origin, cam_normal->z);
+    rotate_y(curr_ray->direction, true_origin, *cam_normal->y);
+    rotate_z(curr_ray->direction, true_origin, *cam_normal->z);
     normalize(curr_ray->direction);                                         // Normalizing the ray's direction so that distances returned from intersection methods will be 
                                                                             // absolute and not scaled by the ray direction's length (the t-value, or distance, returned from the 
                                                                             // ray-plane and ray-triangle intersection methods is dependent upon the ray direction's length, so if 
@@ -172,8 +172,8 @@ __global__ void ray_trace_kernel(double* vertices_in, double* img_out, double si
 __global__ void test_kernel() {
     printf("test kernel started\n");
 
-    vector* cam_origin = new_vector(0, 0, 0);
-    vector* cam_direction = new_vector(0, 0, 0);
+    vector* cam_origin = new vector(0, 0, 0);
+    vector* cam_direction = new vector(0, 0, 0);
     double fov_scale = 1;
     camera* main_cam = new_camera(cam_origin, cam_direction, fov_scale);
 
@@ -184,10 +184,12 @@ __global__ void test_kernel() {
 
     ray* main_cam_ray = generate_camera_ray(main_cam, img_dimensions, 3, 3);
 
+
     print_vector(main_cam_ray->direction);
+    print_vector(new vector(1, 1, 2));
     printf("\n");
 
-    plane* test_plane = new_plane(new_vector(0, 0, 1), -1);
+    plane* test_plane = new_plane(new vector(0, 0, 1), -1);
     bool* has_intersection = (bool*) malloc(1);
     double t = ray_plane_intersection_t(main_cam_ray, test_plane, has_intersection);
     printf("%f\n", t);

@@ -4,7 +4,19 @@
 // collision point vector, a collision triangle, and a collision distance) will be found in the specific_structs.cpp file
 // 3D vector with x-, y-, and z-values
 struct vector {
-    double x, y, z;
+    double* x;
+    double* y;
+    double* z;
+
+    __device__ vector(double _x, double _y, double _z) {
+        *x = _x;
+        *y = _y;
+        *z = _z;
+    }
+
+    __device__ ~vector() {
+        delete x, y, z;
+    }
 };
 
 // RGB color with values between 0-1 (no alpha)
@@ -53,46 +65,37 @@ struct camera {
     // can see
 };
 
-
-// // Constructors and methods for above-defined structs
-// vector constructor and methods
-__device__ vector* new_vector(double x, double y, double z) {
-    vector* v = new vector[1];
-    v[0] = {x, y, z};
-    return v;
-}
-
-// Makes a deep copy of/clones the given vector
+// Makes a deep copy of/clones the given vector (where new vector values are totally separate from the old vector's values)
 __device__ vector* clone_vector(vector* v) {
-    return new_vector(v->x, v->y, v->z);
+    return new vector(*v->x, *v->y, *v->z);
 }
 
 // Tranforms the given vector by the given matrix
 __device__ void transform_vector(double* matrix, vector* v) {
-    double x = v->x;
-    double y = v->y;
-    double z = v->z;
+    double x = *v->x;
+    double y = *v->y;
+    double z = *v->z;
     double result[] = {(matrix[0] + matrix[1] + matrix[2]) * x, 
                       (matrix[3] + matrix[4] + matrix[5]) * y,
                       (matrix[6] + matrix[7] + matrix[8]) * z};
-    v->x = result[0];
-    v->y = result[1];
-    v->z = result[2];
+    *v->x = result[0];
+    *v->y = result[1];
+    *v->z = result[2];
 }
 
 
 // Subtracts the second vector from the first vector
 __device__ void sub_vectors(vector* v, vector* w) {
-    v->x -= w->x;
-    v->y -= w->y;
-    v->z -= w->z;
+    *v->x -= *w->x;
+    *v->y -= *w->y;
+    *v->z -= *w->z;
 }
 
 // Adds the second vector to the first vector
 __device__ void add_vectors(vector* v, vector* w) {
-    v->x += w->x;
-    v->y += w->y;
-    v->z += w->z;
+    *v->x += *w->x;
+    *v->y += *w->y;
+    *v->z += *w->z;
 }
 
 // 3D vector rotation methods that rotate vector v around the vector center by the given radians, on the respective axis
@@ -143,28 +146,28 @@ __device__ void rotate_z(vector* v, vector* center, double radians) {
 
 // Returns the magnitude (or length) of the given vector
 __device__ double magnitude(vector* v) {
-    double sum = (v->x * v->x) + (v->y * v->y) + (v->z * v->z);
+    double sum = (*v->x * *v->x) + (*v->y * *v->y) + (*v->z * *v->z);
     return sqrt(sum);
 }
 
 // Shortens the given vector to a length of 1
 __device__ void normalize(vector* v) {
     double mag = magnitude(v);
-    v->x /= mag;
-    v->y /= mag;
-    v->z /= mag;
+    *v->x /= mag;
+    *v->y /= mag;
+    *v->z /= mag;
 }
 
 // Returns the dot product of the two given vectors
 __device__ double dot(vector* v, vector* w) {
-    return (v->x * w->x) + (v->y * w->y) + (v->z * w->z);
+    return (*v->x * *w->x) + (*v->y * *w->y) + (*v->z * *w->z);
 }
 
 // Returns the cross product of the two given vectors
 __device__ vector* cross(vector* v, vector* w) {
-    vector* result = new_vector((v->y * w->z) - (v->z * w->y),
-                                (v->z * w->x) - (v->x * w->z),
-                                (v->x * w->y) - (v->y * w->x));
+    vector* result = new vector((*v->y * *w->z) - (*v->z * *w->y),
+                                (*v->z * *w->x) - (*v->x * *w->z),
+                                (*v->x * *w->y) - (*v->y * *w->x));
     return result;
 }
 
@@ -245,18 +248,18 @@ __device__ double ray_plane_intersection_t(ray* r, plane* p, bool* has_intersect
     } else {
         *has_intersection = true;
     }
-    double a = p->normal->x;
-    double b = p->normal->y;
-    double c = p->normal->z;
+    double a = *p->normal->x;
+    double b = *p->normal->y;
+    double c = *p->normal->z;
     double d = p->d;
 
-    double x0 = r->origin->x;
-    double y0 = r->origin->y;
-    double z0 = r->origin->z;
+    double x0 = *r->origin->x;
+    double y0 = *r->origin->y;
+    double z0 = *r->origin->z;
     
-    double xt = r->direction->x;
-    double yt = r->direction->y;
-    double zt = r->direction->z;
+    double xt = *r->direction->x;
+    double yt = *r->direction->y;
+    double zt = *r->direction->z;
 
     
     double left = -((a * xt) + (b * yt) + (c * zt));                    // The total t-values added up in the ray-plane equation being solved -- this 
@@ -277,9 +280,9 @@ __device__ double ray_plane_intersection_t(ray* r, plane* p, bool* has_intersect
 __device__ vector* get_point_from_t(ray* r, double* t) {
     vector* origin = r->origin;
     vector* direction = r->direction;
-    vector* result = new_vector(origin->x + (direction->x * *t),
-                                origin->y + (direction->y * *t),
-                                origin->z + (direction->z * *t));
+    vector* result = new vector(*origin->x + (*direction->x * *t),
+                                *origin->y + (*direction->y * *t),
+                                *origin->z + (*direction->z * *t));
     return result;
 }
 
@@ -300,23 +303,23 @@ __device__ vector* ray_triangle_intersection_t(ray* r, triangle* t, bool* has_in
     
     if (dot(r->direction, p->normal) == 0) {
         *has_intersection = false;
-        vector* result = new_vector(0, 0, 0);
+        vector* result = new vector(0, 0, 0);
         *t_out = 0;
         return result;
     }
 
-    double a = p->normal->x;
-    double b = p->normal->y;
-    double c = p->normal->z;
+    double a = *p->normal->x;
+    double b = *p->normal->y;
+    double c = *p->normal->z;
     double d = p->d;
 
-    double x0 = r->origin->x;
-    double y0 = r->origin->y;
-    double z0 = r->origin->z;
+    double x0 = *r->origin->x;
+    double y0 = *r->origin->y;
+    double z0 = *r->origin->z;
     
-    double xt = r->direction->x;
-    double yt = r->direction->y;
-    double zt = r->direction->z;
+    double xt = *r->direction->x;
+    double yt = *r->direction->y;
+    double zt = *r->direction->z;
 
     
     double left = -((a * xt) + (b * yt) + (c * zt));                    // The total t-values added up in the ray-plane equation being solved -- this 
@@ -333,21 +336,21 @@ __device__ vector* ray_triangle_intersection_t(ray* r, triangle* t, bool* has_in
     // Now we need to find the collision point's coordinates in 3D and 
     vector* collision_point = get_point_from_t(r, t_out);
 
-    double* x1 = &t->a->x;
-    double* y1 = &t->a->y;
-    double* x2 = &t->b->x;
-    double* y2 = &t->b->y;
-    double* x3 = &t->c->x;
-    double* y3 = &t->c->y;
+    double* x1 = t->a->x;
+    double* y1 = t->a->y;
+    double* x2 = t->b->x;
+    double* y2 = t->b->y;
+    double* x3 = t->c->x;
+    double* y3 = t->c->y;
     
-    double* i = &collision_point->x;
-    double* j = &collision_point->y;
+    double* i = collision_point->x;
+    double* j = collision_point->y;
 
     *has_intersection = contains(i, j, x1, y1, x2, y2, x3, y3);
     if (*has_intersection) {
         return collision_point;
     } else {
-        vector* result = new_vector(0, 0, 0);
+        vector* result = new vector(0, 0, 0);
         *t_out = 0;
         return result;
     }
@@ -376,13 +379,13 @@ __device__ triangle* new_triangle(material* surface_material, vector* a, vector*
     // Now we need to calculate the shift of the plane, aka d in the plane's equation
     // We do this by substituting in the coordinates for a known point that lies on the plane. What points do we know? Well, any of the 3 vertices of 
     // the triangle will work, because they define the plane of the triangle so they by definition lie on it
-    double* plane_a = &plane_normal->x;
-    double* plane_b = &plane_normal->y;
-    double* plane_c = &plane_normal->z;
+    double* plane_a = plane_normal->x;
+    double* plane_b = plane_normal->y;
+    double* plane_c = plane_normal->z;
 
-    double* x0 = &a->x;
-    double* y0 = &a->y;
-    double* z0 = &a->z;
+    double* x0 = a->x;
+    double* y0 = a->y;
+    double* z0 = a->z;
 
     double d = -((*plane_a * *x0) + (*plane_b * *y0) + (*plane_c * *z0));               // We are making the shift negative here because of how the 
                                                                                         // plane equation is arranged (in this code, at least): ax + 
@@ -423,7 +426,7 @@ __device__ camera* new_camera(vector* origin, vector* rotation, double fov_scale
 
 // Print methods for debugging
 __device__ void print_vector(vector* v) {
-    printf("(%f, %f, %f)", v->x, v->y, v->z);
+    printf("(%f, %f, %f)", *v->x, *v->y, *v->z);
 }
 
 
