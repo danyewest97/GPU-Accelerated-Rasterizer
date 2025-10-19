@@ -20,43 +20,252 @@ struct vector {
     __device__ ~vector() {
         delete x, y, z;
     }
+
+    // Makes a deep copy of/clones this vector (where new vector values are totally separate from the this vector's values)
+    __device__ vector* clone() {
+        return new vector(*x, *y, *z);
+    }
+
+    // Tranforms the given vector by the given matrix
+    __device__ void transform(double* matrix) {
+        double result[] = {(matrix[0] + matrix[1] + matrix[2]) * *x, 
+                           (matrix[3] + matrix[4] + matrix[5]) * *y,
+                           (matrix[6] + matrix[7] + matrix[8]) * *z};
+        *x = result[0];
+        *y = result[1];
+        *z = result[2];
+    }
+
+
+    // Subtracts the given vector from this vector
+    __device__ void sub(vector* v) {
+        *x -= *v->x;
+        *y -= *v->y;
+        *z -= *v->z;
+    }
+
+    // Adds the given vector to this vector
+    __device__ void add(vector* v) {
+        *x += *v->x;
+        *y += *v->y;
+        *z += *v->z;
+    }
+
+    // 3D vector rotation methods that rotate this around the given vector center by the given radians, on the respective axis
+    __device__ void rotate_x(vector* center, double radians) {
+        double sine = sin(radians);
+        double cosine = cos(radians);
+        
+        double transformation_matrix[] = {
+            1, 0, 0,
+            0, cosine, -sine,
+            0, sine, cosine
+        };
+        
+        sub(center);
+        transform(transformation_matrix);
+        add(center);
+    }
+
+    __device__ void rotate_y(vector* center, double radians) {
+        double sine = sin(radians);
+        double cosine = cos(radians);
+        
+        double transformation_matrix[] = {
+            cosine, 0, sine,
+            0, 1, 0,
+            -sine, 0, cosine
+        };
+        
+        sub(center);
+        transform(transformation_matrix);
+        add(center);
+    }
+
+    __device__ void rotate_z(vector* center, double radians) {
+        double sine = sin(radians);
+        double cosine = cos(radians);
+        
+        double transformation_matrix[] = {
+            cosine, -sine, 0,
+            sine, cosine, 0,
+            0, 0, 1
+        };
+        
+        sub(center);
+        transform(transformation_matrix);
+        add(center);
+    }
+
+    // Returns the magnitude (or length) of this vector
+    __device__ double magnitude() {
+        double sum = (*x * *x) + (*y * *y) + (*z * *z);
+        return sqrt(sum);
+    }
+
+    // Shortens this vector to a length of 1
+    __device__ void normalize() {
+        double mag = magnitude();
+        *x /= mag;
+        *y /= mag;
+        *z /= mag;
+    }
+
+    // Returns the dot product of the given vector and this vector
+    __device__ double dot(vector* v) {
+        return (*x * *v->x) + (*y * *v->y) + (*z * *v->z);
+    }
+
+    // Returns the cross product of the this vector and the given vector
+    __device__ vector* cross(vector* v) {
+        vector* result = new vector((*y * *v->z) - (*z * *v->y),
+                                    (*z * *v->x) - (*x * *v->z),
+                                    (*x * *v->y) - (*y * *v->x));
+        return result;
+    }
 };
 
 // RGB color with values between 0-1 (no alpha)
 struct color {
-    double r, g, b;
+    double* r = new double[1];
+    double* g = new double[1];
+    double* b = new double[1];
+
+    __device__ color() {}
+
+    __device__ color(double _r, double _g, double _b) {
+        *r = _r;
+        *g = _g;
+        *b = _b;
+    }
+
+    __device__ ~color() {
+        delete r, g, b;
+    }
 };
 
 // A template for a material with different parameters that control how the material interacts with light (used in calculating BRDFs)
 struct material {
-    color* material_color;
-    double absorption, reflection, transmission, diffusion;
+    color* material_color = new color[1];
+    double* diffusion = new double[1];
+    double* reflection = new double[1];
+    double* refraction = new double[1];
+
+    __device__ material() {}
+
+    __device__ material(color* _material_color, double _diffusion, double _reflection, double _refraction) {
+        material_color = _material_color;
+        *diffusion = _diffusion;
+        *reflection = _reflection;
+        *refraction = _refraction;
+    }
+
+    __device__ ~material() {
+        delete material_color, diffusion, reflection, refraction;
+    }
 };
 
 // A 3D plane with components a, b, c, d, expressed by equation ax + by + cz + d = 0
 struct plane {
-    vector* normal;                     // vector to store the components of the plane's normal as (a, b, c)
-    double d;
+    vector* normal = new vector[1];                     // vector to store the components of the plane's normal as (a, b, c)
+    double* d = new double[1];
+
+    __device__ plane() {}
+
+    __device__ plane(vector* _normal, double _d) {
+        normal = _normal;
+        *d = _d;
+    }
+
+    __device__ ~plane() {
+        delete normal, d;
+    }
 };
 
 // A 3D Ray that starts from the 3D point origin and points in the direction given by the direction vector
 struct ray {
-    vector* origin;
-    vector* direction;
+    vector* origin = new vector[1];
+    vector* direction = new vector[1];
 };
 
 // A 3D triangle defined by the 3 vectors a, b, and c, with the given material and plane
 struct triangle {
-    plane* surface_plane;               // the 3D plane that the triangle sits on
-    material* surface_material;         // the material that the triangle is "made out of," defining how light rays should interact with the triangle
-    vector* a;
-    vector* b;
-    vector* c;
+    plane* surface_plane = new plane[1];               // the 3D plane that the triangle sits on
+    material* surface_material = new material[1];         // the material that the triangle is "made out of," defining how light rays should interact with the triangle
+    vector* a = new vector[1];
+    vector* b = new vector[1];
+    vector* c = new vector[1];
+
+    __device__ triangle() {}
+
+    __device__ triangle(plane* _surface_plane, material* _surface_material, vector* _a, vector* _b, vector* _c) {
+        surface_plane = _surface_plane;
+        surface_material = _surface_material;
+        a = _a;
+        b = _b;
+        c = _c;
+    }
+
+    // Alternate triangle constructor that doesn't require a plane
+    __device__ triangle(material* _surface_material, vector* _a, vector* _b, vector* _c) {
+        // Setting the struct's members
+        surface_material = _surface_material;
+        a = _a;
+        b = _b;
+        c = _c;
+
+
+        // Here we are taking the cross product of the vectors that make up two of the legs of the triangle to find the normal of the plane that the 
+        // triangle sits on, because both of them are by definition situated on the same plane as the triangle, to find a vector that is parallel to both, 
+        // which is equivalent to the normal of the plane
+        vector* ab = b->clone();
+        vector* bc = c->clone();
+        a->sub(b);
+        b->sub(c);
+
+        vector* plane_normal = ab->cross(bc);
+        
+        // Now we need to calculate the shift of the plane, aka d in the plane's equation
+        // We do this by substituting in the coordinates for a known point that lies on the plane. What points do we know? Well, any of the 3 vertices of 
+        // the triangle will work, because they define the plane of the triangle so they by definition lie on it
+        double* plane_a = plane_normal->x;
+        double* plane_b = plane_normal->y;
+        double* plane_c = plane_normal->z;
+
+        double* x0 = a->x;
+        double* y0 = a->y;
+        double* z0 = a->z;
+
+        double d = -((*plane_a * *x0) + (*plane_b * *y0) + (*plane_c * *z0));               // We are making the shift negative here because of how the 
+                                                                                            // plane equation is arranged (in this code, at least): ax + 
+                                                                                            // by + cz + d = 0, where we are plugging in known values for 
+                                                                                            // ax, by, and cz, and solving for d
+        surface_plane = new plane(plane_normal, d);
+
+        // Deleting local variables to free memory
+        delete plane_a, plane_b, plane_c, x0, y0, z0, ab, bc;
+    }
+
+    __device__ ~triangle() {
+        delete surface_plane, surface_material, a, b, c;
+    }
 };
 
 // A container to hold the height and width of an image (or anything else with height and width)
 struct dimensions {
-    int width, height;
+    int* width = new int[1];
+    int* height = new int[1];
+
+    __device__ dimensions() {}
+
+    __device__ dimensions(int _width, int _height) {
+        *width = _width;
+        *height = _height;
+    }
+
+    __device__ ~dimensions() {
+        delete width, height;
+    }
 };
 
 // 3D camera, defines where the camera rays originate and in which direction they radiate, to control where the viewport is looking
@@ -82,125 +291,18 @@ struct light {
     color* rgb;
     double* intensity;
 
-    light() {}
+    __device__ light() {}
 
-    light(vector* _position, color* _rgb, double _intensity) {
+    __device__ light(vector* _position, color* _rgb, double _intensity) {
         position = _position;
         rgb = _rgb;
         *intensity = _intensity;
     }
 
-    ~light() {
+    __device__ ~light() {
         delete position, rgb, intensity;
     }
-}
-
-
-// Makes a deep copy of/clones the given vector (where new vector values are totally separate from the old vector's values)
-__device__ vector* clone_vector(vector* v) {
-    return new vector(*v->x, *v->y, *v->z);
-}
-
-// Tranforms the given vector by the given matrix
-__device__ void transform_vector(double* matrix, vector* v) {
-    double x = *v->x;
-    double y = *v->y;
-    double z = *v->z;
-    double result[] = {(matrix[0] + matrix[1] + matrix[2]) * x, 
-                      (matrix[3] + matrix[4] + matrix[5]) * y,
-                      (matrix[6] + matrix[7] + matrix[8]) * z};
-    *v->x = result[0];
-    *v->y = result[1];
-    *v->z = result[2];
-}
-
-
-// Subtracts the second vector from the first vector
-__device__ void sub_vectors(vector* v, vector* w) {
-    *v->x -= *w->x;
-    *v->y -= *w->y;
-    *v->z -= *w->z;
-}
-
-// Adds the second vector to the first vector
-__device__ void add_vectors(vector* v, vector* w) {
-    *v->x += *w->x;
-    *v->y += *w->y;
-    *v->z += *w->z;
-}
-
-// 3D vector rotation methods that rotate vector v around the vector center by the given radians, on the respective axis
-__device__ void rotate_x(vector* v, vector* center, double radians) {
-    double sine = sin(radians);
-    double cosine = cos(radians);
-    
-    double transformation_matrix[] = {
-        1, 0, 0,
-        0, cosine, -sine,
-        0, sine, cosine
-    };
-    
-    sub_vectors(v, center);
-    transform_vector(transformation_matrix, v);
-    add_vectors(v, center);
-}
-
-__device__ void rotate_y(vector* v, vector* center, double radians) {
-    double sine = sin(radians);
-    double cosine = cos(radians);
-    
-    double transformation_matrix[] = {
-        cosine, 0, sine,
-        0, 1, 0,
-        -sine, 0, cosine
-    };
-    
-    sub_vectors(v, center);
-    transform_vector(transformation_matrix, v);
-    add_vectors(v, center);
-}
-
-__device__ void rotate_z(vector* v, vector* center, double radians) {
-    double sine = sin(radians);
-    double cosine = cos(radians);
-    
-    double transformation_matrix[] = {
-        cosine, -sine, 0,
-        sine, cosine, 0,
-        0, 0, 1
-    };
-    
-    sub_vectors(v, center);
-    transform_vector(transformation_matrix, v);
-    add_vectors(v, center);
-}
-
-// Returns the magnitude (or length) of the given vector
-__device__ double magnitude(vector* v) {
-    double sum = (*v->x * *v->x) + (*v->y * *v->y) + (*v->z * *v->z);
-    return sqrt(sum);
-}
-
-// Shortens the given vector to a length of 1
-__device__ void normalize(vector* v) {
-    double mag = magnitude(v);
-    *v->x /= mag;
-    *v->y /= mag;
-    *v->z /= mag;
-}
-
-// Returns the dot product of the two given vectors
-__device__ double dot(vector* v, vector* w) {
-    return (*v->x * *w->x) + (*v->y * *w->y) + (*v->z * *w->z);
-}
-
-// Returns the cross product of the two given vectors
-__device__ vector* cross(vector* v, vector* w) {
-    vector* result = new vector((*v->y * *w->z) - (*v->z * *w->y),
-                                (*v->z * *w->x) - (*v->x * *w->z),
-                                (*v->x * *w->y) - (*v->y * *w->x));
-    return result;
-}
+};
 
 
 // color constructor
@@ -208,20 +310,6 @@ __device__ color* new_color(double r, double g, double b) {
     color* c = new color[1];
     c[0] = {r, g, b};
     return c;
-}
-
-// material constructor
-__device__ material* new_material(color* material_color, double absorption, double reflection, double transmission, double diffusion) {
-    material* m = new material[1];
-    m[0] = {material_color, absorption, reflection, transmission, diffusion};
-    return m;
-}
-
-// plane constructor
-__device__ plane* new_plane(vector* normal, double d) {
-    plane* p = new plane[1];
-    p[0] = {normal, d};
-    return p;
 }
 
 // ray constructor and methods
@@ -273,30 +361,30 @@ __device__ bool contains(double* i, double* j, double* x1, double* y1, double* x
 // To express x-, y-, and z-values in terms of t: x = x0 + xt, y = y0 + yt, and z = z0 + zt, where (x0, y0, z0) is the origin and (xt, yt, zt) is the
 // direction of the ray. Substituting these into the plane's equation ax + by + cz + d = 0 and solving gives us the intersection point.
 __device__ double ray_plane_intersection_t(ray* r, plane* p, bool* has_intersection) {
-    if (dot(r->direction, p->normal) == 0) {
+    if (r->direction->dot(p->normal) == 0) {
         *has_intersection = false;
         return 0;
     } else {
         *has_intersection = true;
     }
-    double a = *p->normal->x;
-    double b = *p->normal->y;
-    double c = *p->normal->z;
-    double d = p->d;
+    double* a = p->normal->x;
+    double* b = p->normal->y;
+    double* c = p->normal->z;
+    double* d = p->d;
 
-    double x0 = *r->origin->x;
-    double y0 = *r->origin->y;
-    double z0 = *r->origin->z;
+    double* x0 = r->origin->x;
+    double* y0 = r->origin->y;
+    double* z0 = r->origin->z;
     
-    double xt = *r->direction->x;
-    double yt = *r->direction->y;
-    double zt = *r->direction->z;
+    double* xt = r->direction->x;
+    double* yt = r->direction->y;
+    double* zt = r->direction->z;
 
     
-    double left = -((a * xt) + (b * yt) + (c * zt));                    // The total t-values added up in the ray-plane equation being solved -- this 
+    double left = -((*a * *xt) + (*b * *yt) + (*c * *zt));                    // The total t-values added up in the ray-plane equation being solved -- this 
                                                                         // is negative because we are subtracting the values from the left side of the 
                                                                         // equation to the right side of the equation
-    double right = (a * x0) + (b * y0) + (c * z0) + d;                  // The total constants added up in the ray-plane equation being solved
+    double right = (*a * *x0) + (*b * *y0) + (*c * *z0) + *d;                  // The total constants added up in the ray-plane equation being solved
                                                                         
                                                                         
 
@@ -332,31 +420,31 @@ __device__ vector* get_point_from_t(ray* r, double* t) {
 __device__ vector* ray_triangle_intersection_t(ray* r, triangle* t, bool* has_intersection, double* t_out) {
     plane* p = t->surface_plane;
     
-    if (dot(r->direction, p->normal) == 0) {
+    if (r->direction->dot(p->normal) == 0) {
         *has_intersection = false;
         vector* result = new vector(0, 0, 0);
         *t_out = 0;
         return result;
     }
 
-    double a = *p->normal->x;
-    double b = *p->normal->y;
-    double c = *p->normal->z;
-    double d = p->d;
+    double* a = p->normal->x;
+    double* b = p->normal->y;
+    double* c = p->normal->z;
+    double* d = p->d;
 
-    double x0 = *r->origin->x;
-    double y0 = *r->origin->y;
-    double z0 = *r->origin->z;
+    double* x0 = r->origin->x;
+    double* y0 = r->origin->y;
+    double* z0 = r->origin->z;
     
-    double xt = *r->direction->x;
-    double yt = *r->direction->y;
-    double zt = *r->direction->z;
+    double* xt = r->direction->x;
+    double* yt = r->direction->y;
+    double* zt = r->direction->z;
 
     
-    double left = -((a * xt) + (b * yt) + (c * zt));                    // The total t-values added up in the ray-plane equation being solved -- this 
+    double left = -((*a * *xt) + (*b * *yt) + (*c * *zt));                    // The total t-values added up in the ray-plane equation being solved -- this 
                                                                         // is negative because we are subtracting the values from the left side of the 
                                                                         // equation to the right side of the equation
-    double right = (a * x0) + (b * y0) + (c * z0) + d;                  // The total constants added up in the ray-plane equation being solved
+    double right = (*a * *x0) + (*b * *y0) + (*c * *z0) + *d;                  // The total constants added up in the ray-plane equation being solved
                                                                         
                                                                         
 
@@ -388,47 +476,6 @@ __device__ vector* ray_triangle_intersection_t(ray* r, triangle* t, bool* has_in
 }
 
 
-// triangle constructor and methods
-__device__ triangle* new_triangle(plane* surface_plane, material* surface_material, vector* a, vector* b, vector* c) {
-    triangle* t = new triangle[1];
-    t[0] = {surface_plane, surface_material, a, b, c};
-    return t;
-}
-
-// Alternate triangle constructor that doesn't require a plane
-__device__ triangle* new_triangle(material* surface_material, vector* a, vector* b, vector* c) {
-    // Here we are taking the cross product of the vectors that make up two of the legs of the triangle to find the normal of the plane that the 
-    // triangle sits on, because both of them are by definition situated on the same plane as the triangle, to find a vector that is parallel to both, 
-    // which is equivalent to the normal of the plane
-    vector* ab = clone_vector(b);
-    vector* bc = clone_vector(c);
-    sub_vectors(b, a);
-    sub_vectors(c, b);
-
-    vector* plane_normal = cross(ab, bc);
-    
-    // Now we need to calculate the shift of the plane, aka d in the plane's equation
-    // We do this by substituting in the coordinates for a known point that lies on the plane. What points do we know? Well, any of the 3 vertices of 
-    // the triangle will work, because they define the plane of the triangle so they by definition lie on it
-    double* plane_a = plane_normal->x;
-    double* plane_b = plane_normal->y;
-    double* plane_c = plane_normal->z;
-
-    double* x0 = a->x;
-    double* y0 = a->y;
-    double* z0 = a->z;
-
-    double d = -((*plane_a * *x0) + (*plane_b * *y0) + (*plane_c * *z0));               // We are making the shift negative here because of how the 
-                                                                                        // plane equation is arranged (in this code, at least): ax + 
-                                                                                        // by + cz + d = 0, where we are plugging in known values for 
-                                                                                        // ax, by, and cz, and solving for d
-    plane* surface_plane = new_plane(plane_normal, d);
-    triangle* result = new_triangle(surface_plane, surface_material, a, b, c);
-
-    // Deleting local variables to free memory
-    delete plane_a, plane_b, plane_c, x0, y0, z0, ab, bc;
-    return result;
-}
 
 // Alternate triangle constructor that doesn't require a plane or a material -- currently deprecated, only used for geometric calculations if needed
 // __device__ triangle* new_triangle(vector* a, vector* b, vector* c) {

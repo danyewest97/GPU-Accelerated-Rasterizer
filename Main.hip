@@ -52,17 +52,17 @@ __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
     vector* cam_normal = curr_cam->rotation;
     double* fov_scale = curr_cam->fov_scale;
     
-    int width = img_dims->width;
-    int height = img_dims->height;
-    int num_rays = width * height;
+    int* width = img_dims->width;
+    int* height = img_dims->height;
+    int num_rays = *width * *height;
     
 
     // TODO: Confirm that rays need to be offset? Or should they just come directly from the camera origin with no offset? I think having an offset is 
     // correct
     // Note: may need optimizations for greater performance -- and either offload to CPU or do this in parallel (make new kernel for this?)
-    double initial_horizontal_offset = -width / 2 + 0.5;                    // Adding 0.5 to each offset to move the rays to be in the middle of each 
+    double initial_horizontal_offset = -*width / 2 + 0.5;                    // Adding 0.5 to each offset to move the rays to be in the middle of each 
                                                                             // pixel
-    double initial_vertical_offset = -height / 2 + 0.5;
+    double initial_vertical_offset = -*height / 2 + 0.5;
     double* passthrough_plane_distance = fov_scale;                          // Corresponds to the FOV scale of the camera (vertical and horizontal FOV 
                                                                             // values depend on the width and height of the camera), this is my own 
                                                                             // method for generating camera rays: imagine a plane that is fov_scale 
@@ -82,26 +82,26 @@ __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
                                                                             // that we will use for ray casting
     
     // Iterating through every cell in the image and creating a camera/primary ray for it
-    for (int i = 0; i < width; i++) {
-        for (int j = 0; j < height; j++) {
-            vector* curr_position = clone_vector(start_position);
+    for (int i = 0; i < *width; i++) {
+        for (int j = 0; j < *height; j++) {
+            vector* curr_position = start_position->clone();
             ray* curr_ray = new_ray(true_origin, curr_position);            // Creating the initial ray, not yet conformed to the camera's orientation
 
-            add_vectors(curr_ray->origin, cam_origin);                      // Orienting the ray to be lined up properly with the camera (translating 
+            cam_origin->add(curr_ray->origin);                      // Orienting the ray to be lined up properly with the camera (translating 
             // to the camera's origin)
             // TODO: Make this into one operation, by precalculating the single matrix needed for all three rotations and only using that matrix
-            rotate_x(curr_ray->direction, true_origin, *cam_normal->x);      // Rotating the ray to face the same direction as the camera -- using 
+            curr_ray->direction->rotate_x(true_origin, *cam_normal->x);     // Rotating the ray to face the same direction as the camera -- using 
                                                                             // true_origin instead of cam_origin because the direction of the ray 
                                                                             // determines where it points from its origin, so it is not 
                                                                             // location-dependent and should therefore be rotated about (0, 0, 0)
-            rotate_y(curr_ray->direction, true_origin, *cam_normal->y);
-            rotate_z(curr_ray->direction, true_origin, *cam_normal->z);
-            normalize(curr_ray->direction);                                 // Normalizing the ray's direction so that distances returned from intersection methods will be 
+            curr_ray->direction->rotate_y(true_origin, *cam_normal->y);
+            curr_ray->direction->rotate_z(true_origin, *cam_normal->z);
+            curr_ray->direction->normalize();                                 // Normalizing the ray's direction so that distances returned from intersection methods will be 
                                                                             // absolute and not scaled by the ray direction's length (the t-value, or distance, returned from the 
                                                                             // ray-plane and ray-triangle intersection methods is dependent upon the ray direction's length, so if 
                                                                             // that length is 1, the t-value returned will be the same as the Euclidean distance from the ray's 
                                                                             // origin to the intersection point)
-            primary_rays[i * height + j] = curr_ray;
+            primary_rays[i * *height + j] = curr_ray;
             *start_position->y++;
         }
         *start_position->x++;
@@ -115,8 +115,8 @@ __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
 __device__ ray* generate_camera_ray(camera* curr_cam, dimensions* img_dim, int pixel_x, int pixel_y) {
     vector* cam_origin = curr_cam->origin;
     vector* cam_normal = curr_cam->rotation;
-    int* width = &img_dim->width;
-    int* height = &img_dim->height;
+    int* width = img_dim->width;
+    int* height = img_dim->height;
 
     // TODO: Confirm that rays need to be offset? Or should they just come directly from the camera origin with no offset? I think having an offset is 
     // correct
@@ -140,17 +140,17 @@ __device__ ray* generate_camera_ray(camera* curr_cam, dimensions* img_dim, int p
     
     ray* curr_ray = new_ray(true_origin, ray_direction);                    // Creating the initial ray, not yet conformed to the camera's orientation
     
-    add_vectors(curr_ray->origin, cam_origin);                              // Orienting the ray to be lined up properly with the camera (translating 
+    cam_origin->add(curr_ray->origin);                              // Orienting the ray to be lined up properly with the camera (translating 
     // to the camera's origin)
     
     // TODO: Make this into one operation, by precalculating the single matrix needed for all three rotations and only using that matrix
-    rotate_x(curr_ray->direction, true_origin, *cam_normal->x);              // Rotating the ray to face the same direction as the camera -- using 
+    curr_ray->direction->rotate_x(true_origin, *cam_normal->x);              // Rotating the ray to face the same direction as the camera -- using 
                                                                             // true_origin instead of cam_origin because the direction of the ray 
                                                                             // determines where it points from its origin, so it is not 
                                                                             // location-dependent and should therefore be rotated about (0, 0, 0)
-    rotate_y(curr_ray->direction, true_origin, *cam_normal->y);
-    rotate_z(curr_ray->direction, true_origin, *cam_normal->z);
-    normalize(curr_ray->direction);                                         // Normalizing the ray's direction so that distances returned from intersection methods will be 
+    curr_ray->direction->rotate_y(true_origin, *cam_normal->y);
+    curr_ray->direction->rotate_z(true_origin, *cam_normal->z);
+    curr_ray->direction->normalize();                                         // Normalizing the ray's direction so that distances returned from intersection methods will be 
                                                                             // absolute and not scaled by the ray direction's length (the t-value, or distance, returned from the 
                                                                             // ray-plane and ray-triangle intersection methods is dependent upon the ray direction's length, so if 
                                                                             // that length is 1, the t-value returned will be the same as the Euclidean distance from the ray's 
@@ -183,8 +183,8 @@ __global__ void test_kernel() {
 
     ray* main_cam_ray = generate_camera_ray(main_cam, img_dimensions, 3, 3);
 
-    plane* test_plane = new_plane(new vector(0, 0, 1), -1);
-    bool* has_intersection = (bool*) malloc(1);
+    plane* test_plane = new plane(new vector(0, 0, 1), -1);
+    bool* has_intersection = new bool[1];
     double t = ray_plane_intersection_t(main_cam_ray, test_plane, has_intersection);
     printf("%f\n", t);
 
