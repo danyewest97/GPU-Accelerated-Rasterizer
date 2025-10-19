@@ -179,7 +179,7 @@ __global__ void test_kernel() {
     int width = 10;
     int height = 10;
     int num_rays = width * height;
-    dimensions* img_dimensions = new_dimensions(width, height);
+    dimensions* img_dimensions = new dimensions(width, height);
 
     ray* main_cam_ray = generate_camera_ray(main_cam, img_dimensions, 3, 3);
 
