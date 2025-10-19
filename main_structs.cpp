@@ -9,7 +9,7 @@ struct vector {
     double* z = new double[1];
 
     __device__ vector() {}              // An empty constructor, only used for when allocating memory for a vector to take up in the future (i.e. 
-                                        // through "new vector[1]")
+                                        // through "new vector[1]") -- same goes for all other empty constructors following
     
     __device__ vector(double _x, double _y, double _z) {
         *x = _x;
@@ -75,6 +75,26 @@ struct camera {
         *fov_scale = _fov_scale;
     }
 };
+
+// 3D point-source light with color, position, and intensity
+struct light {
+    vector* position;
+    color* rgb;
+    double* intensity;
+
+    light() {}
+
+    light(vector* _position, color* _rgb, double _intensity) {
+        position = _position;
+        rgb = _rgb;
+        *intensity = _intensity;
+    }
+
+    ~light() {
+        delete position, rgb, intensity;
+    }
+}
+
 
 // Makes a deep copy of/clones the given vector (where new vector values are totally separate from the old vector's values)
 __device__ vector* clone_vector(vector* v) {
