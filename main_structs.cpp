@@ -186,6 +186,17 @@ struct plane {
 struct ray {
     vector* origin = new vector[1];
     vector* direction = new vector[1];
+
+    __device__ ray() {}
+
+    __device__ ray(vector* _origin, vector* _direction) {
+        origin = _origin;
+        direction = _direction;
+    }
+
+    __device__ ~ray() {
+        delete origin, direction;
+    }
 };
 
 // A 3D triangle defined by the 3 vectors a, b, and c, with the given material and plane
@@ -287,9 +298,9 @@ struct camera {
 
 // 3D point-source light with color, position, and intensity
 struct light {
-    vector* position;
-    color* rgb;
-    double* intensity;
+    vector* position = new vector[1];
+    color* rgb = new color[1];
+    double* intensity = new double[1];
 
     __device__ light() {}
 
@@ -304,20 +315,6 @@ struct light {
     }
 };
 
-
-// color constructor
-__device__ color* new_color(double r, double g, double b) {
-    color* c = new color[1];
-    c[0] = {r, g, b};
-    return c;
-}
-
-// ray constructor and methods
-__device__ ray* new_ray(vector* origin, vector* direction) {
-    ray* r = new ray[1];
-    r[0] = {origin, direction};
-    return r;
-}
 
 // Checks if the point (i, j) is contained in the triangle defined by the points (x1, y1), (x2, y2), and (x3, y3) -- required dependency for
 // ray-triangle intersection method below.

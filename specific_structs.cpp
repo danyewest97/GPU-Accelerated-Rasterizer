@@ -8,10 +8,3 @@ struct collision {
     vector* collision_point;
     double* collision_distance;
 };
-
-// collision constructor
-__device__ collision* new_collision(triangle* collision_triangle, color* collision_color, vector* collision_point, double* collision_distance) {
-    collision* c = new collision[1];
-    c[0] = {collision_triangle, collision_color, collision_point, collision_distance};
-    return c;
-}

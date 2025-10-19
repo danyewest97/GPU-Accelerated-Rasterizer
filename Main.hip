@@ -85,7 +85,7 @@ __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
     for (int i = 0; i < *width; i++) {
         for (int j = 0; j < *height; j++) {
             vector* curr_position = start_position->clone();
-            ray* curr_ray = new_ray(true_origin, curr_position);            // Creating the initial ray, not yet conformed to the camera's orientation
+            ray* curr_ray = new ray(true_origin, curr_position);            // Creating the initial ray, not yet conformed to the camera's orientation
 
             cam_origin->add(curr_ray->origin);                      // Orienting the ray to be lined up properly with the camera (translating 
             // to the camera's origin)
@@ -138,7 +138,7 @@ __device__ ray* generate_camera_ray(camera* curr_cam, dimensions* img_dim, int p
     *passthrough_plane_distance);
     
     
-    ray* curr_ray = new_ray(true_origin, ray_direction);                    // Creating the initial ray, not yet conformed to the camera's orientation
+    ray* curr_ray = new ray(true_origin, ray_direction);                    // Creating the initial ray, not yet conformed to the camera's orientation
     
     cam_origin->add(curr_ray->origin);                              // Orienting the ray to be lined up properly with the camera (translating 
     // to the camera's origin)
