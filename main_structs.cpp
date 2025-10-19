@@ -474,22 +474,6 @@ __device__ vector* ray_triangle_intersection_t(ray* r, triangle* t, bool* has_in
 
 
 
-// Alternate triangle constructor that doesn't require a plane or a material -- currently deprecated, only used for geometric calculations if needed
-// __device__ triangle* new_triangle(vector* a, vector* b, vector* c) {
-//     triangle* t = new triangle[1];
-//     t[0] = {surface_plane, surface_material, a, b, c};
-//     return t;
-// }
-
-// dimensions constructor
-__device__ dimensions* new_dimensions(int width, int height) {
-    dimensions* d = new dimensions[1];
-    d[0] = {width, height};
-    return d;
-}
-
-
-
 
 // Print methods for debugging
 __device__ void print_vector(vector* v) {

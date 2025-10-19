@@ -88,7 +88,7 @@ __device__ ray** generate_camera_rays(camera* curr_cam, dimensions* img_dims) {
             ray* curr_ray = new ray(true_origin, curr_position);            // Creating the initial ray, not yet conformed to the camera's orientation
 
             cam_origin->add(curr_ray->origin);                      // Orienting the ray to be lined up properly with the camera (translating 
-            // to the camera's origin)
+                                                                    // to the camera's origin)
             // TODO: Make this into one operation, by precalculating the single matrix needed for all three rotations and only using that matrix
             curr_ray->direction->rotate_x(true_origin, *cam_normal->x);     // Rotating the ray to face the same direction as the camera -- using 
                                                                             // true_origin instead of cam_origin because the direction of the ray 
