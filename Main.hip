@@ -185,8 +185,8 @@ __global__ void test_kernel() {
 
     plane* test_plane = new plane(new vector(0, 0, 1), -1);
     bool* has_intersection = new bool[1];
-    double t = ray_plane_intersection_t(main_cam_ray, test_plane, has_intersection);
-    printf("%f\n", t);
+    double* t = ray_plane_intersection_t(main_cam_ray, test_plane, has_intersection);
+    printf("%f\n", *t);
 
     printf("test kernel finished\n");
 }
