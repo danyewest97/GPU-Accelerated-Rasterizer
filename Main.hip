@@ -8,7 +8,6 @@
 #include <cstdlib> // Standard library with many useful functions
 #include <chrono> // Library used for timing, for measuring performance
 #include <cmath> // Standard math library for things like sine and cosine functions
-using namespace std; // Makes it so I don't have to put std:: before everything!
 
 // Custom/local library files
 #include "main_structs.cpp" // Includes all of the required main structs and their constructors, plus some methods for them
