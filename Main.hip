@@ -168,29 +168,32 @@ __global__ void ray_trace_kernel(double* vertices_in, double* img_out, double si
 // Note: For some reason (probably a compilation bug or something), HIP seems to break when I put two identical print statements in here
 // -- so don't do that!
 __global__ void test_kernel() {
-    printf("test kernel started\n");
+    //printf("test kernel started\n");
 
-    vector* cam_origin = new vector(0, 0, 0);
-    vector* cam_direction = new vector(0, 0, 0);
-    double fov_scale = 1;
-    camera* main_cam = new camera(cam_origin, cam_direction, fov_scale);
+    //vector* cam_origin = new vector(0, 0, 0);
+    //vector* cam_direction = new vector(0, 0, 0);
+    //double fov_scale = 1;
+    //camera* main_cam = new camera(cam_origin, cam_direction, fov_scale);
+//
+    //int width = 10;
+    //int height = 10;
+    //int num_rays = width * height;
+    //dimensions* img_dimensions = new dimensions(width, height);
+//
+    //ray* main_cam_ray = generate_camera_ray(main_cam, img_dimensions, 3, 3);
+//
+    //plane* test_plane = new plane(new vector(0, 0, 1), -1);
+    //bool* has_intersection = new bool[1];
+    //double* t = ray_plane_intersection_t(main_cam_ray, test_plane, has_intersection);
+    //printf("%f\n", *t);
 
-    int width = 10;
-    int height = 10;
-    int num_rays = width * height;
-    dimensions* img_dimensions = new dimensions(width, height);
+    
 
-    ray* main_cam_ray = generate_camera_ray(main_cam, img_dimensions, 3, 3);
-
-    plane* test_plane = new plane(new vector(0, 0, 1), -1);
-    bool* has_intersection = new bool[1];
-    double* t = ray_plane_intersection_t(main_cam_ray, test_plane, has_intersection);
-    printf("%f\n", *t);
-
-    printf("test kernel finished\n");
+    //printf("test kernel finished\n");
 }
 
 
+__global__ void initialization() {}
 
 
 // Important note: not sure how much overhead variable creation and logic happening inside the kernel is adding, because I am not just sending
@@ -199,17 +202,38 @@ __global__ void test_kernel() {
 
 void run()
 {
-
-    test_kernel<<<
+    // Kind of a hack, but see note below -- HIP takes a very long time to run the first kernel, but not the ones run after it, so I am including this
+    // call to an empty kernel to "initialize" HIP so that the timing for the test_kernel kernel is not offset for debugging/timing purposes
+    initialization<<<
         dim3(1),
         dim3(1),
         0,
         hipStreamDefault
     >>>();
-
-    // Wait on all active streams on the current device. VERY NECESSARY
     hipDeviceSynchronize();
 
+    // Note: For some reason, it seems that whenever dynamically allocating memory on the GPU (i.e. with "new"), it adds a baseline ~13 milliseconds
+    // to the runtime -- NOT 13 milliseconds per allocation, but 13 milliseconds no matter the amount of allocations happening, if there is at least
+    // one allocation.
+    // In other words, if you don't allocate anything dynamically, the runtime stays low, but as soon as you make even a bool* with a single bit of 
+    // memory using the "new" operator, runtime jumps up by 13 ms, and it stays that way no matter how much more memory you allocate.
+    // ALSO: When running a kernel multiple times in a for-loop, the base runtime is around 500 (!!) ms, even running an empty kernel. However, I 
+    // think this is just an "initialization" period that HIP needs to start communicating with the GPU, or something similar, because it isn't there 
+    // for further runs of the same kernel -- only the first run.
+    for (int i = 0; i < 10; i++) {
+        auto start = std::chrono::high_resolution_clock::now();                         // For timing, to see how long the test function takes to run
+        test_kernel<<<
+        dim3(1),
+        dim3(1),
+        0,
+        hipStreamDefault
+        >>>();
+        
+        // Wait on all active streams on the current device. VERY NECESSARY
+        hipDeviceSynchronize();
+        auto finish = std::chrono::high_resolution_clock::now();
+        std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(finish-start).count() /*- 13366350 */<< "\n";
+    }
 }
 
 
