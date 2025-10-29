@@ -170,21 +170,21 @@ __global__ void ray_trace_kernel(double* vertices_in, double* img_out, double si
 __global__ void test_kernel() {
     //printf("test kernel started\n");
 
-    //vector* cam_origin = new vector(0, 0, 0);
-    //vector* cam_direction = new vector(0, 0, 0);
-    //double fov_scale = 1;
-    //camera* main_cam = new camera(cam_origin, cam_direction, fov_scale);
-//
-    //int width = 10;
-    //int height = 10;
-    //int num_rays = width * height;
-    //dimensions* img_dimensions = new dimensions(width, height);
-//
-    //ray* main_cam_ray = generate_camera_ray(main_cam, img_dimensions, 3, 3);
-//
-    //plane* test_plane = new plane(new vector(0, 0, 1), -1);
-    //bool* has_intersection = new bool[1];
-    //double* t = ray_plane_intersection_t(main_cam_ray, test_plane, has_intersection);
+    vector* cam_origin = new vector(0, 0, 0);
+    vector* cam_direction = new vector(0, 0, 0);
+    double fov_scale = 1;
+    camera* main_cam = new camera(cam_origin, cam_direction, fov_scale);
+
+    int width = 10;
+    int height = 10;
+    int num_rays = width * height;
+    dimensions* img_dimensions = new dimensions(width, height);
+
+    ray* main_cam_ray = generate_camera_ray(main_cam, img_dimensions, 3, 3);
+
+    plane* test_plane = new plane(new vector(0, 0, 1), -1);
+    bool* has_intersection = new bool[1];
+    double* t = ray_plane_intersection_t(main_cam_ray, test_plane, has_intersection);
     //printf("%f\n", *t);
 
     
@@ -220,20 +220,33 @@ void run()
     // ALSO: When running a kernel multiple times in a for-loop, the base runtime is around 500 (!!) ms, even running an empty kernel. However, I 
     // think this is just an "initialization" period that HIP needs to start communicating with the GPU, or something similar, because it isn't there 
     // for further runs of the same kernel -- only the first run.
-    for (int i = 0; i < 10; i++) {
+    int iterations = 10;                                                                // The number of times the test_kernel will run
+    int* times = new int[iterations];                                                   // An array to store the results of the test_kernel running 
+                                                                                        // multiple times, to take the average time
+    for (int i = iterations; i >= 0; i--) {
         auto start = std::chrono::high_resolution_clock::now();                         // For timing, to see how long the test function takes to run
+        
         test_kernel<<<
-        dim3(1),
-        dim3(1),
-        0,
-        hipStreamDefault
+            dim3(1),
+            dim3(1),
+            0,
+            hipStreamDefault
         >>>();
         
         // Wait on all active streams on the current device. VERY NECESSARY
         hipDeviceSynchronize();
         auto finish = std::chrono::high_resolution_clock::now();
-        std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(finish-start).count() /*- 13366350 */<< "\n";
+        //std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(finish-start).count() << "ns\n";
+        if (i < iterations) {           // Throwing out the first time because it still seems to have some baseline delay before running ¯\_(ツ)_/¯
+            times[i] = std::chrono::duration_cast<std::chrono::nanoseconds>(finish-start).count();
+        }
     }
+    
+    int sum = 0;
+    for (int i = 0; i < iterations; i++) {
+        sum += times[i];
+    }
+    printf("%i\n", sum / iterations);
 }
 
 
