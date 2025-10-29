@@ -196,31 +196,8 @@ __global__ void test_kernel() {
 __global__ void initialization() {}
 
 
-// Important note: not sure how much overhead variable creation and logic happening inside the kernel is adding, because I am not just sending
-// a shader to the GPU for it to handle and send back, but actually making new variables and doing more than *just* matrix matrix multiplication
-// on the kernel
-
-void run()
-{
-    // Kind of a hack, but see note below -- HIP takes a very long time to run the first kernel, but not the ones run after it, so I am including this
-    // call to an empty kernel to "initialize" HIP so that the timing for the test_kernel kernel is not offset for debugging/timing purposes
-    initialization<<<
-        dim3(1),
-        dim3(1),
-        0,
-        hipStreamDefault
-    >>>();
-    hipDeviceSynchronize();
-
-    // Note: For some reason, it seems that whenever dynamically allocating memory on the GPU (i.e. with "new"), it adds a baseline ~13 milliseconds
-    // to the runtime -- NOT 13 milliseconds per allocation, but 13 milliseconds no matter the amount of allocations happening, if there is at least
-    // one allocation.
-    // In other words, if you don't allocate anything dynamically, the runtime stays low, but as soon as you make even a bool* with a single bit of 
-    // memory using the "new" operator, runtime jumps up by 13 ms, and it stays that way no matter how much more memory you allocate.
-    // ALSO: When running a kernel multiple times in a for-loop, the base runtime is around 500 (!!) ms, even running an empty kernel. However, I 
-    // think this is just an "initialization" period that HIP needs to start communicating with the GPU, or something similar, because it isn't there 
-    // for further runs of the same kernel -- only the first run.
-    int iterations = 10;                                                                // The number of times the test_kernel will run
+// Runs the test kernel iterations times and spits out the average time per iteration, in nanoseconds
+void run_test_kernel(int iterations) {
     int* times = new int[iterations];                                                   // An array to store the results of the test_kernel running 
                                                                                         // multiple times, to take the average time
     for (int i = iterations; i >= 0; i--) {
@@ -247,6 +224,45 @@ void run()
         sum += times[i];
     }
     printf("%i\n", sum / iterations);
+}
+
+
+// Important note: not sure how much overhead variable creation and logic happening inside the kernel is adding, because I am not just sending
+// a shader to the GPU for it to handle and send back, but actually making new variables and doing more than *just* matrix matrix multiplication
+// on the kernel
+
+void run()
+{
+    // Kind of a hack, but see note below -- HIP takes a very long time to run the first kernel, but not the ones run after it, so I am including this
+    // call to an empty kernel to "initialize" HIP so that the timing for the test_kernel kernel is not offset for debugging/timing purposes
+    initialization<<<
+        dim3(1),
+        dim3(1),
+        0,
+        hipStreamDefault
+    >>>();
+    hipDeviceSynchronize();
+
+    // Note: For some reason, it seems that whenever dynamically allocating memory on the GPU (i.e. with "new"), it adds a baseline ~13 milliseconds
+    // to the runtime -- NOT 13 milliseconds per allocation, but 13 milliseconds no matter the amount of allocations happening, if there is at least
+    // one allocation.
+    // In other words, if you don't allocate anything dynamically, the runtime stays low, but as soon as you make even a bool* with a single bit of 
+    // memory using the "new" operator, runtime jumps up by 13 ms, and it stays that way no matter how much more memory you allocate.
+    // ALSO: When running a kernel multiple times in a for-loop, the base runtime is around 500 (!!) ms, even running an empty kernel. However, I 
+    // think this is just an "initialization" period that HIP needs to start communicating with the GPU, or something similar, because it isn't there 
+    // for further runs of the same kernel -- only the first run.
+    
+    run_test_kernel(1000);
+    
+    //test_kernel<<<
+    //    dim3(1),
+    //    dim3(1),
+    //    0,
+    //    hipStreamDefault
+    //>>>();
+        
+    // Wait on all active streams on the current device. VERY NECESSARY
+    //hipDeviceSynchronize();
 }
 
 
