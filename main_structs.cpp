@@ -349,7 +349,7 @@ __device__ bool contains(double* i, double* j, double* x1, double* y1, double* x
     bool allPos = dotAB >= 0 && dotBC >= 0 && dotCA >= 0;
     bool allNeg = dotAB <= 0 && dotBC <= 0 && dotCA <= 0;
 
-    return allPos || allNeg;;
+    return allPos || allNeg;
 }
 
 

@@ -8,7 +8,6 @@
 #include <cstdlib> // Standard library with many useful functions
 #include <chrono> // Library used for timing, for measuring performance
 #include <cmath> // Standard math library for things like sine and cosine functions
-using namespace std; // Makes it so I don't have to put std:: before everything!
 
 // Custom/local library files
 #include "main_structs.cpp" // Includes all of the required main structs and their constructors, plus some methods for them
@@ -169,7 +168,7 @@ __global__ void ray_trace_kernel(double* vertices_in, double* img_out, double si
 // Note: For some reason (probably a compilation bug or something), HIP seems to break when I put two identical print statements in here
 // -- so don't do that!
 __global__ void test_kernel() {
-    printf("test kernel started\n");
+    //printf("test kernel started\n");
 
     vector* cam_origin = new vector(0, 0, 0);
     vector* cam_direction = new vector(0, 0, 0);
@@ -186,12 +185,46 @@ __global__ void test_kernel() {
     plane* test_plane = new plane(new vector(0, 0, 1), -1);
     bool* has_intersection = new bool[1];
     double* t = ray_plane_intersection_t(main_cam_ray, test_plane, has_intersection);
-    printf("%f\n", *t);
+    //printf("%f\n", *t);
 
-    printf("test kernel finished\n");
+    
+
+    //printf("test kernel finished\n");
 }
 
 
+__global__ void initialization() {}
+
+
+// Runs the test kernel iterations times and spits out the average time per iteration, in nanoseconds
+void run_test_kernel(int iterations) {
+    int* times = new int[iterations];                                                   // An array to store the results of the test_kernel running 
+                                                                                        // multiple times, to take the average time
+    for (int i = iterations; i >= 0; i--) {
+        auto start = std::chrono::high_resolution_clock::now();                         // For timing, to see how long the test function takes to run
+        
+        test_kernel<<<
+            dim3(1),
+            dim3(1),
+            0,
+            hipStreamDefault
+        >>>();
+        
+        // Wait on all active streams on the current device. VERY NECESSARY
+        hipDeviceSynchronize();
+        auto finish = std::chrono::high_resolution_clock::now();
+        //std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(finish-start).count() << "ns\n";
+        if (i < iterations) {           // Throwing out the first time because it still seems to have some baseline delay before running ¯\_(ツ)_/¯
+            times[i] = std::chrono::duration_cast<std::chrono::nanoseconds>(finish-start).count();
+        }
+    }
+    
+    int sum = 0;
+    for (int i = 0; i < iterations; i++) {
+        sum += times[i];
+    }
+    printf("%i\n", sum / iterations);
+}
 
 
 // Important note: not sure how much overhead variable creation and logic happening inside the kernel is adding, because I am not just sending
@@ -200,17 +233,36 @@ __global__ void test_kernel() {
 
 void run()
 {
-
-    test_kernel<<<
+    // Kind of a hack, but see note below -- HIP takes a very long time to run the first kernel, but not the ones run after it, so I am including this
+    // call to an empty kernel to "initialize" HIP so that the timing for the test_kernel kernel is not offset for debugging/timing purposes
+    initialization<<<
         dim3(1),
         dim3(1),
         0,
         hipStreamDefault
     >>>();
-
-    // Wait on all active streams on the current device. VERY NECESSARY
     hipDeviceSynchronize();
 
+    // Note: For some reason, it seems that whenever dynamically allocating memory on the GPU (i.e. with "new"), it adds a baseline ~13 milliseconds
+    // to the runtime -- NOT 13 milliseconds per allocation, but 13 milliseconds no matter the amount of allocations happening, if there is at least
+    // one allocation.
+    // In other words, if you don't allocate anything dynamically, the runtime stays low, but as soon as you make even a bool* with a single bit of 
+    // memory using the "new" operator, runtime jumps up by 13 ms, and it stays that way no matter how much more memory you allocate.
+    // ALSO: When running a kernel multiple times in a for-loop, the base runtime is around 500 (!!) ms, even running an empty kernel. However, I 
+    // think this is just an "initialization" period that HIP needs to start communicating with the GPU, or something similar, because it isn't there 
+    // for further runs of the same kernel -- only the first run.
+    
+    run_test_kernel(1000);
+    
+    //test_kernel<<<
+    //    dim3(1),
+    //    dim3(1),
+    //    0,
+    //    hipStreamDefault
+    //>>>();
+        
+    // Wait on all active streams on the current device. VERY NECESSARY
+    //hipDeviceSynchronize();
 }
 
 
