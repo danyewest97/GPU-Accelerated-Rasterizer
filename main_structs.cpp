@@ -229,12 +229,13 @@ struct triangle {
         // Here we are taking the cross product of the vectors that make up two of the legs of the triangle to find the normal of the plane that the 
         // triangle sits on, because both of them are by definition situated on the same plane as the triangle, to find a vector that is parallel to both, 
         // which is equivalent to the normal of the plane
-        vector* ab = b->clone();
-        vector* bc = c->clone();
-        a->sub(b);
-        b->sub(c);
+        vector* ab = a->clone();
+        vector* bc = b->clone();
+        ab->sub(b);
+        bc->sub(c);
 
         vector* plane_normal = ab->cross(bc);
+        plane_normal->normalize();                                                           // Normalizing to help with calculations
         
         // Now we need to calculate the shift of the plane, aka d in the plane's equation
         // We do this by substituting in the coordinates for a known point that lies on the plane. What points do we know? Well, any of the 3 vertices of 
@@ -443,19 +444,23 @@ __device__ vector* ray_triangle_intersection_t(ray* r, triangle* t, bool* has_in
     double* zt = r->direction->z;
 
     
-    double right = -((*a * *xt) + (*b * *yt) + (*c * *zt));             // The total t-values added up in the ray-plane equation being solved -- this 
+    double left = (*a * *xt) + (*b * *yt) + (*c * *zt);             // The total t-values added up in the ray-plane equation being solved -- this 
                                                                         // is negative because we are subtracting the values from the left side of the 
                                                                         // equation to the right side of the equation
-    double left = (*a * *x0) + (*b * *y0) + (*c * *z0) + *d;          // The total constants added up in the ray-plane equation being solved
+    double right = -((*a * *x0) + (*b * *y0) + (*c * *z0) + *d);          // The total constants added up in the ray-plane equation being solved
                                                                         
                                                                         
 
 
-    *t_out = right / left;                                             // After the last step, the equation is something like c = kt, where c and k 
+    *t_out = left / right;                                             // After the last step, the equation is something like c = kt, where c and k 
                                                                         // are some given constants, and we need to isolate t so we divide both sides 
                                                                         // by k to get t = c / k
     // Now we need to find the collision point's coordinates in 3D and 
     vector* collision_point = get_point_from_t(r, t_out);
+
+    //printf("%f, %f, %f\n", *collision_point->x, *collision_point->y, *collision_point->z);
+    printf("%f, %f, %f\n", *a, *b, *d);
+    //printf("%f\n", *t_out);
 
     double* x1 = t->a->x;
     double* y1 = t->a->y;
