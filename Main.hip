@@ -167,29 +167,58 @@ __global__ void ray_trace_kernel(double* vertices_in, double* img_out, double si
 
 // Note: For some reason (probably a compilation bug or something), HIP seems to break when I put two identical print statements in here
 // -- so don't do that!
-__global__ void test_kernel() {
-    //printf("test kernel started\n");
+__global__ void test_kernel(int* img_out) {
+    printf("test kernel started\n");
 
-    vector* cam_origin = new vector(0, 0, 0);
-    vector* cam_direction = new vector(0, 0, 0);
-    double fov_scale = 1;
-    camera* main_cam = new camera(cam_origin, cam_direction, fov_scale);
+    //vector* cam_origin = new vector(0, 0, 0);
+    //vector* cam_direction = new vector(0, 0, 0);
+    //double fov_scale = 1;
+    //camera* main_cam = new camera(cam_origin, cam_direction, fov_scale);
 
-    int width = 10;
-    int height = 10;
-    int num_rays = width * height;
-    dimensions* img_dimensions = new dimensions(width, height);
+    //int width = 10;
+    //int height = 10;
+    //int num_rays = width * height;
+    //dimensions* img_dimensions = new dimensions(width, height);
 
-    ray* main_cam_ray = generate_camera_ray(main_cam, img_dimensions, 3, 3);
+    //ray* main_cam_ray = generate_camera_ray(main_cam, img_dimensions, 3, 3);
 
-    plane* test_plane = new plane(new vector(0, 0, 1), -1);
-    bool* has_intersection = new bool[1];
-    double* t = ray_plane_intersection_t(main_cam_ray, test_plane, has_intersection);
+    //plane* test_plane = new plane(new vector(0, 0, 1), -1);
+    //bool* has_intersection = new bool[1];
+    //double* t = ray_plane_intersection_t(main_cam_ray, test_plane, has_intersection);
     //printf("%f\n", *t);
+
+    vector* a = new vector(0, 0, 1);
+    vector* b = new vector(0, 10, 1);
+    vector* c = new vector(10, 0, 1);
+    material* m = new material(new color(0, 0, 0), 0, 0, 0);
+    triangle* t = new triangle(m, a, b, c);
+
+    dimensions* dim = new dimensions(20, 20);
+    camera* cam = new camera(new vector(0, 0, 0), new vector(0, 0, 0), 1);
+    for (int i = 0; i < 20; i++) {
+        for (int j = 0; j < 20; j++) {
+            //ray* r = generate_camera_ray(cam, dim, i, j);
+            ray* r = new ray(new vector(i - 10, j - 10, 0), new vector(0, 0, 1));
+
+            bool* has_intersection = new bool[1];
+            *has_intersection = false;
+
+            double* t_out = new double[1];
+            *t_out = 0;
+
+            vector* collision = ray_triangle_intersection_t(r, t, has_intersection, t_out);
+            if (*has_intersection) {
+                img_out[i * 20 + j] = 1;
+            } else {
+                img_out[i * 20 + j] = 0;
+            }
+        }
+    }
+
 
     
 
-    //printf("test kernel finished\n");
+    printf("test kernel finished\n");
 }
 
 
@@ -208,7 +237,7 @@ void run_test_kernel(int iterations) {
             dim3(1),
             0,
             hipStreamDefault
-        >>>();
+        >>>(new int[1]);
         
         // Wait on all active streams on the current device. VERY NECESSARY
         hipDeviceSynchronize();
@@ -252,17 +281,32 @@ void run()
     // think this is just an "initialization" period that HIP needs to start communicating with the GPU, or something similar, because it isn't there 
     // for further runs of the same kernel -- only the first run.
     
-    run_test_kernel(1000);
+    //run_test_kernel(1);
     
-    //test_kernel<<<
-    //    dim3(1),
-    //    dim3(1),
-    //    0,
-    //    hipStreamDefault
-    //>>>();
-        
+    
+    int* img_out;
+    hipMalloc(&img_out, 400 * sizeof(int));
+
+    test_kernel<<<
+        dim3(1),
+        dim3(1),
+        0,
+        hipStreamDefault
+    >>>(img_out);
+
+    
     // Wait on all active streams on the current device. VERY NECESSARY
-    //hipDeviceSynchronize();
+    hipDeviceSynchronize();
+    
+    int* result = new int[400 * sizeof(int)];
+    hipMemcpy(result, img_out, 400 * sizeof(int), hipMemcpyDeviceToHost);
+
+    for (int i = 0; i < 20; i++) {
+        for (int j = 0; j < 20; j++) {
+            printf("%i, ", result[i * 20 + j]);
+        }
+        printf("\n");
+    }
 }
 
 
