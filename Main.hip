@@ -212,6 +212,8 @@ __global__ void test_kernel(int* img_out) {
             } else {
                 img_out[i * 20 + j] = 0;
             }
+
+            printf("%f, %f, %f\n", *r->direction->x, *r->direction->y, *r->direction->z);
         }
     }
 

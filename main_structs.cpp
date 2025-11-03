@@ -458,10 +458,6 @@ __device__ vector* ray_triangle_intersection_t(ray* r, triangle* t, bool* has_in
     // Now we need to find the collision point's coordinates in 3D and 
     vector* collision_point = get_point_from_t(r, t_out);
 
-    //printf("%f, %f, %f\n", *collision_point->x, *collision_point->y, *collision_point->z);
-    printf("%f, %f, %f\n", *a, *b, *d);
-    //printf("%f\n", *t_out);
-
     double* x1 = t->a->x;
     double* y1 = t->a->y;
     double* x2 = t->b->x;
