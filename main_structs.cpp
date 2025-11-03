@@ -446,12 +446,12 @@ __device__ vector* ray_triangle_intersection_t(ray* r, triangle* t, bool* has_in
     double right = -((*a * *xt) + (*b * *yt) + (*c * *zt));             // The total t-values added up in the ray-plane equation being solved -- this 
                                                                         // is negative because we are subtracting the values from the left side of the 
                                                                         // equation to the right side of the equation
-    double right = -(*a * *x0) + (*b * *y0) + (*c * *z0) + *d;                  // The total constants added up in the ray-plane equation being solved
+    double left = (*a * *x0) + (*b * *y0) + (*c * *z0) + *d;          // The total constants added up in the ray-plane equation being solved
                                                                         
                                                                         
 
 
-    *t_out = right / left;                                            // After the last step, the equation is something like c = kt, where c and k 
+    *t_out = right / left;                                             // After the last step, the equation is something like c = kt, where c and k 
                                                                         // are some given constants, and we need to isolate t so we divide both sides 
                                                                         // by k to get t = c / k
     // Now we need to find the collision point's coordinates in 3D and 
