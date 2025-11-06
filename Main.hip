@@ -130,25 +130,26 @@ __device__ ray* generate_camera_ray(camera* curr_cam, dimensions* img_dim, int p
     // I chose to do it this way because it is very intuitive to me and 
     // incredibly easy to implement, since no rotation is involved
     
+    double x = (-(double) (*width) / 2) + pixel_x + 0.5;
+    double y = (-(double) (*height) / 2) + pixel_y + 0.5;
     vector* true_origin = new vector(0, 0, 0);                              // We will initially draw rays originating from (0, 0, 0), then translate 
     // and rotate them according to the camera's position
-    vector* ray_direction = new vector((-(double) (*width) / 2) + pixel_x + 0.5,        // Adding a 0.5 unit offset to position rays into the middle of each
-    (-(double) *height / 2) + pixel_y + 0.5,       // pixel, instead of the top-right corner without the offset
-    *passthrough_plane_distance);
+    vector* ray_direction = new vector(x, y, *passthrough_plane_distance);      // Adding a 0.5 unit offset to position rays into the middle of each
+                                                                                // pixel, instead of the top-right corner without the offset
     
     
     ray* curr_ray = new ray(true_origin, ray_direction);                    // Creating the initial ray, not yet conformed to the camera's orientation
     
-    cam_origin->add(curr_ray->origin);                              // Orienting the ray to be lined up properly with the camera (translating 
+    cam_origin->add(curr_ray->origin);                                      // Orienting the ray to be lined up properly with the camera (translating 
     // to the camera's origin)
     
     // TODO: Make this into one operation, by precalculating the single matrix needed for all three rotations and only using that matrix
-    curr_ray->direction->rotate_x(true_origin, *cam_normal->x);              // Rotating the ray to face the same direction as the camera -- using 
+    //curr_ray->direction->rotate_x(true_origin, *cam_normal->x);              // Rotating the ray to face the same direction as the camera -- using 
                                                                             // true_origin instead of cam_origin because the direction of the ray 
                                                                             // determines where it points from its origin, so it is not 
                                                                             // location-dependent and should therefore be rotated about (0, 0, 0)
-    curr_ray->direction->rotate_y(true_origin, *cam_normal->y);
-    curr_ray->direction->rotate_z(true_origin, *cam_normal->z);
+    //curr_ray->direction->rotate_y(true_origin, *cam_normal->y);
+    //curr_ray->direction->rotate_z(true_origin, *cam_normal->z);
     curr_ray->direction->normalize();                                         // Normalizing the ray's direction so that distances returned from intersection methods will be 
                                                                             // absolute and not scaled by the ray direction's length (the t-value, or distance, returned from the 
                                                                             // ray-plane and ray-triangle intersection methods is dependent upon the ray direction's length, so if 
@@ -197,8 +198,8 @@ __global__ void test_kernel(int* img_out) {
     camera* cam = new camera(new vector(0, 0, 0), new vector(0, 0, 0), 1);
     for (int i = 0; i < 20; i++) {
         for (int j = 0; j < 20; j++) {
-            //ray* r = generate_camera_ray(cam, dim, i, j);
-            ray* r = new ray(new vector(i - 10, j - 10, 0), new vector(0, 0, 1));
+            ray* r = generate_camera_ray(cam, dim, i, j);
+            //ray* r = new ray(new vector(i - 10, j - 10, 0), new vector(0, 0, 1));
 
             bool* has_intersection = new bool[1];
             *has_intersection = false;
@@ -209,11 +210,13 @@ __global__ void test_kernel(int* img_out) {
             vector* collision = ray_triangle_intersection_t(r, t, has_intersection, t_out);
             if (*has_intersection) {
                 img_out[i * 20 + j] = 1;
+                //printf("%f\n", *t_out);
+                printf("%f, %f, %f\n", *collision->x, *collision->y, *collision->z);
             } else {
                 img_out[i * 20 + j] = 0;
             }
 
-            printf("%f, %f, %f\n", *r->direction->x, *r->direction->y, *r->direction->z);
+            //printf("%f, %f, %f\n", *r->direction->x, *r->direction->y, *r->direction->z);
         }
     }
 
