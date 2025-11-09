@@ -12,6 +12,7 @@
 // Custom/local library files
 #include "main_structs.cpp" // Includes all of the required main structs and their constructors, plus some methods for them
 #include "specific_structs.cpp" // Includes all of the required more-specific structs and their constructors, plus some methods for them
+#include "gpu_copying.cpp" // Includes all of the required functions for copying structs AND THEIR MEMBERS*** over to the GPU
 
 // #include "arrays.cpp" // Includes all of the required structs and their constructors, plus some methods for them
 // NOTE: Convention will be to use custom-made array types (in arrays.cpp) for ALL arrays, and only using pointers when the pointer is pointing to a 
@@ -332,9 +333,8 @@ void run()
     dimensions* img_dim = new dimensions(width, height);
 
     int num_tris = 1;
-    int size_of_triangles = num_tris * sizeof(triangle);
     material* placeholder_material = new material(new color(255, 255, 255), 1, 0, 0);
-    triangle** triangles = new triangle*[num_tris * sizeof(triangle)];
+    triangle** triangles = new triangle*[num_tris];
 
     triangle* test_tri_1 = new triangle(placeholder_material, new vector(0, 0, 1), new vector(10, 0, 1), new vector(0, 10, 1));
     triangles[0] = test_tri_1;
@@ -349,21 +349,12 @@ void run()
     hipMemcpy(gpu_img_dim, img_dim, sizeof(dimensions), hipMemcpyHostToDevice);
 
     triangle** gpu_triangles;
-    hipMalloc(&gpu_triangles, sizeof(size_of_triangles));
-    hipMemcpy(gpu_triangles, triangles, sizeof(size_of_triangles), hipMemcpyHostToDevice);
+    hipMalloc(&gpu_triangles, sizeof(num_tris));
+    hipMemcpy(gpu_triangles, triangles, sizeof(num_tris), hipMemcpyHostToDevice);
 
 
-    double* x = new double[1];
-    *x = 3;
-    double* gpu_x;
-    hipMalloc(&gpu_x, sizeof(double));
-    hipMemcpy(gpu_x, x, sizeof(double), hipMemcpyHostToDevice);
-
-    vector* v = new vector(1, 1, 2);
-    v->x = gpu_x;
-    vector* gpu_v;
-    hipMalloc(&gpu_v, sizeof(vector));
-    hipMemcpy(gpu_v, v, sizeof(vector), hipMemcpyHostToDevice);
+    vector* v = new vector(1, 1, 3);
+    vector* gpu_v = vector_to_gpu(v);
 
     test_kernel<<<
         dim3(1),
