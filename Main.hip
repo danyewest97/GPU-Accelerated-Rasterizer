@@ -223,15 +223,14 @@ __global__ void ray_trace_kernel(double* vertices_in, double* img_out, double si
 
 // Note: For some reason (probably a compilation bug or something), HIP seems to break when I put two identical print statements in here
 // -- so don't do that!
-__global__ void test_kernel(color* img_out, camera* cam, dimensions* img_dimensions, triangle** triangles, int num_tris, int start_index, int end_index, vector* test) {
+__global__ void test_kernel(color* img_out, camera* cam, dimensions* img_dimensions, triangle** triangles, int num_tris, int start_index, int end_index) {
     printf("test kernel started\n");
 
-    //triangle* temp = triangles[0];
-    print_vector(test);
+    triangle* temp = triangles[0];
+    print_vector(temp->a);
 
     for (int i = start_index; i < end_index; i++) {
         ray* primary_ray = generate_camera_ray(cam, img_dimensions, i);
-
         bool* has_an_intersection = new bool[1];
         for (int j = 0; j < num_tris; j++) {
             triangle* curr_tri = triangles[j];
@@ -333,24 +332,22 @@ void run()
     dimensions* img_dim = new dimensions(width, height);
 
     int num_tris = 1;
-    material* placeholder_material = new material(new color(255, 255, 255), 1, 0, 0);
+    int size_of_triangles = num_tris * sizeof(triangle*);
     triangle** triangles = new triangle*[num_tris];
-
+    
+    material* placeholder_material = new material(new color(255, 255, 255), 1, 0, 0);
     triangle* test_tri_1 = new triangle(placeholder_material, new vector(0, 0, 1), new vector(10, 0, 1), new vector(0, 10, 1));
-    triangles[0] = test_tri_1;
+    triangle* test_gpu = triangle_to_gpu(test_tri_1);
+    triangles[0] = test_gpu;
 
     // Copying all of the variables above to the GPU memory
-    camera* gpu_main_cam;
-    hipMalloc(&gpu_main_cam, sizeof(camera));
-    hipMemcpy(gpu_main_cam, main_cam, sizeof(camera), hipMemcpyHostToDevice);
+    camera* gpu_main_cam = camera_to_gpu(main_cam);
 
-    dimensions* gpu_img_dim;
-    hipMalloc(&gpu_img_dim, sizeof(dimensions));
-    hipMemcpy(gpu_img_dim, img_dim, sizeof(dimensions), hipMemcpyHostToDevice);
+    dimensions* gpu_img_dim = dimensions_to_gpu(img_dim);
 
     triangle** gpu_triangles;
-    hipMalloc(&gpu_triangles, sizeof(num_tris));
-    hipMemcpy(gpu_triangles, triangles, sizeof(num_tris), hipMemcpyHostToDevice);
+    hipMalloc(&gpu_triangles, sizeof(size_of_triangles));
+    hipMemcpy(gpu_triangles, triangles, sizeof(size_of_triangles), hipMemcpyHostToDevice);
 
 
     vector* v = new vector(1, 1, 3);
@@ -361,7 +358,7 @@ void run()
         dim3(1),
         0,
         hipStreamDefault
-    >>>(img_out, gpu_main_cam, gpu_img_dim, gpu_triangles, num_tris, 0, 400, gpu_v);                     // Start index is inclusive, end index is exclusive
+    >>>(img_out, gpu_main_cam, gpu_img_dim, gpu_triangles, num_tris, 0, 400);                     // Start index is inclusive, end index is exclusive
 
     
     // Wait on all active streams on the current device. VERY NECESSARY
