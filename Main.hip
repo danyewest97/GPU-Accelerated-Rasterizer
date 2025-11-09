@@ -346,8 +346,8 @@ void run()
     dimensions* gpu_img_dim = dimensions_to_gpu(img_dim);
 
     triangle** gpu_triangles;
-    hipMalloc(&gpu_triangles, sizeof(size_of_triangles));
-    hipMemcpy(gpu_triangles, triangles, sizeof(size_of_triangles), hipMemcpyHostToDevice);
+    hipMalloc(&gpu_triangles, size_of_triangles);
+    hipMemcpy(gpu_triangles, triangles, size_of_triangles, hipMemcpyHostToDevice);
 
 
     test_kernel<<<
