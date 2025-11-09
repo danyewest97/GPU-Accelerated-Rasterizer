@@ -350,9 +350,6 @@ void run()
     hipMemcpy(gpu_triangles, triangles, sizeof(size_of_triangles), hipMemcpyHostToDevice);
 
 
-    vector* v = new vector(1, 1, 3);
-    vector* gpu_v = vector_to_gpu(v);
-
     test_kernel<<<
         dim3(1),
         dim3(1),
