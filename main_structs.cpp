@@ -2,32 +2,33 @@
 
 // // These are the main, arbitrary structs. Structs designed for a more niche circumstance (such as a collision struct that holds a 
 // collision point vector, a collision triangle, and a collision distance) will be found in the specific_structs.cpp file
+
 // 3D vector with x-, y-, and z-values
 struct vector {
     double* x = new double[1];
     double* y = new double[1];
     double* z = new double[1];
 
-    __device__ vector() {}              // An empty constructor, only used for when allocating memory for a vector to take up in the future (i.e. 
+    __device__ __host__ vector() {}              // An empty constructor, only used for when allocating memory for a vector to take up in the future (i.e. 
                                         // through "new vector[1]") -- same goes for all other empty constructors following
     
-    __device__ vector(double _x, double _y, double _z) {
+    __device__ __host__ vector(double _x, double _y, double _z) {
         *x = _x;
         *y = _y;
         *z = _z;
     }
 
-    __device__ ~vector() {
+    __device__ __host__ ~vector() {
         delete x, y, z;
     }
 
     // Makes a deep copy of/clones this vector (where new vector values are totally separate from the this vector's values)
-    __device__ vector* clone() {
+    __device__ __host__ vector* clone() {
         return new vector(*x, *y, *z);
     }
 
     // Tranforms the given vector by the given matrix
-    __device__ void transform(double* matrix) {
+    __device__ __host__ void transform(double* matrix) {
         double result[] = {(matrix[0] + matrix[1] + matrix[2]) * *x, 
                            (matrix[3] + matrix[4] + matrix[5]) * *y,
                            (matrix[6] + matrix[7] + matrix[8]) * *z};
@@ -38,21 +39,21 @@ struct vector {
 
 
     // Subtracts the given vector from this vector
-    __device__ void sub(vector* v) {
+    __device__ __host__ void sub(vector* v) {
         *x -= *v->x;
         *y -= *v->y;
         *z -= *v->z;
     }
 
     // Adds the given vector to this vector
-    __device__ void add(vector* v) {
+    __device__ __host__ void add(vector* v) {
         *x += *v->x;
         *y += *v->y;
         *z += *v->z;
     }
 
     // 3D vector rotation methods that rotate this around the given vector center by the given radians, on the respective axis
-    __device__ void rotate_x(vector* center, double radians) {
+    __device__ __host__ void rotate_x(vector* center, double radians) {
         double sine = sin(radians);
         double cosine = cos(radians);
         
@@ -67,7 +68,7 @@ struct vector {
         add(center);
     }
 
-    __device__ void rotate_y(vector* center, double radians) {
+    __device__ __host__ void rotate_y(vector* center, double radians) {
         double sine = sin(radians);
         double cosine = cos(radians);
         
@@ -82,7 +83,7 @@ struct vector {
         add(center);
     }
 
-    __device__ void rotate_z(vector* center, double radians) {
+    __device__ __host__ void rotate_z(vector* center, double radians) {
         double sine = sin(radians);
         double cosine = cos(radians);
         
@@ -98,13 +99,13 @@ struct vector {
     }
 
     // Returns the magnitude (or length) of this vector
-    __device__ double magnitude() {
+    __device__ __host__ double magnitude() {
         double sum = (*x * *x) + (*y * *y) + (*z * *z);
         return sqrt(sum);
     }
 
     // Shortens this vector to a length of 1
-    __device__ void normalize() {
+    __device__ __host__ void normalize() {
         double mag = magnitude();
         *x /= mag;
         *y /= mag;
@@ -112,12 +113,12 @@ struct vector {
     }
 
     // Returns the dot product of the given vector and this vector
-    __device__ double dot(vector* v) {
+    __device__ __host__ double dot(vector* v) {
         return (*x * *v->x) + (*y * *v->y) + (*z * *v->z);
     }
 
     // Returns the cross product of the this vector and the given vector
-    __device__ vector* cross(vector* v) {
+    __device__ __host__ vector* cross(vector* v) {
         vector* result = new vector((*y * *v->z) - (*z * *v->y),
                                     (*z * *v->x) - (*x * *v->z),
                                     (*x * *v->y) - (*y * *v->x));
@@ -131,15 +132,15 @@ struct color {
     double* g = new double[1];
     double* b = new double[1];
 
-    __device__ color() {}
+    __device__ __host__ color() {}
 
-    __device__ color(double _r, double _g, double _b) {
+    __device__ __host__ color(double _r, double _g, double _b) {
         *r = _r;
         *g = _g;
         *b = _b;
     }
 
-    __device__ ~color() {
+    __device__ __host__ ~color() {
         delete r, g, b;
     }
 };
@@ -151,16 +152,16 @@ struct material {
     double* reflection = new double[1];
     double* refraction = new double[1];
 
-    __device__ material() {}
+    __device__ __host__ material() {}
 
-    __device__ material(color* _material_color, double _diffusion, double _reflection, double _refraction) {
+    __device__ __host__ material(color* _material_color, double _diffusion, double _reflection, double _refraction) {
         material_color = _material_color;
         *diffusion = _diffusion;
         *reflection = _reflection;
         *refraction = _refraction;
     }
 
-    __device__ ~material() {
+    __device__ __host__ ~material() {
         delete material_color, diffusion, reflection, refraction;
     }
 };
@@ -170,14 +171,14 @@ struct plane {
     vector* normal = new vector[1];                     // vector to store the components of the plane's normal as (a, b, c)
     double* d = new double[1];
 
-    __device__ plane() {}
+    __device__ __host__ plane() {}
 
-    __device__ plane(vector* _normal, double _d) {
+    __device__ __host__ plane(vector* _normal, double _d) {
         normal = _normal;
         *d = _d;
     }
 
-    __device__ ~plane() {
+    __device__ __host__ ~plane() {
         delete normal, d;
     }
 };
@@ -187,14 +188,14 @@ struct ray {
     vector* origin = new vector[1];
     vector* direction = new vector[1];
 
-    __device__ ray() {}
+    __device__ __host__ ray() {}
 
-    __device__ ray(vector* _origin, vector* _direction) {
+    __device__ __host__ ray(vector* _origin, vector* _direction) {
         origin = _origin;
         direction = _direction;
     }
 
-    __device__ ~ray() {
+    __device__ __host__ ~ray() {
         delete origin, direction;
     }
 };
@@ -207,9 +208,9 @@ struct triangle {
     vector* b = new vector[1];
     vector* c = new vector[1];
 
-    __device__ triangle() {}
+    __device__ __host__ triangle() {}
 
-    __device__ triangle(plane* _surface_plane, material* _surface_material, vector* _a, vector* _b, vector* _c) {
+    __device__ __host__ triangle(plane* _surface_plane, material* _surface_material, vector* _a, vector* _b, vector* _c) {
         surface_plane = _surface_plane;
         surface_material = _surface_material;
         a = _a;
@@ -218,7 +219,7 @@ struct triangle {
     }
 
     // Alternate triangle constructor that doesn't require a plane
-    __device__ triangle(material* _surface_material, vector* _a, vector* _b, vector* _c) {
+    __device__ __host__ triangle(material* _surface_material, vector* _a, vector* _b, vector* _c) {
         // Setting the struct's members
         surface_material = _surface_material;
         a = _a;
@@ -258,7 +259,7 @@ struct triangle {
         delete plane_a, plane_b, plane_c, x0, y0, z0, ab, bc;
     }
 
-    __device__ ~triangle() {
+    __device__ __host__ ~triangle() {
         delete surface_plane, surface_material, a, b, c;
     }
 };
@@ -268,14 +269,14 @@ struct dimensions {
     int* width = new int[1];
     int* height = new int[1];
 
-    __device__ dimensions() {}
+    __device__ __host__ dimensions() {}
 
-    __device__ dimensions(int _width, int _height) {
+    __device__ __host__ dimensions(int _width, int _height) {
         *width = _width;
         *height = _height;
     }
 
-    __device__ ~dimensions() {
+    __device__ __host__ ~dimensions() {
         delete width, height;
     }
 };
@@ -288,15 +289,15 @@ struct camera {
     double* fov_scale = new double[1];  // The field-of-view parameters, expressed in radians, that define how far left/right or up/down the camera 
     // can see
 
-    __device__ camera() {}
+    __device__ __host__ camera() {}
 
-    __device__ camera(vector* _origin, vector* _rotation, double _fov_scale) {
+    __device__ __host__ camera(vector* _origin, vector* _rotation, double _fov_scale) {
         origin = _origin;
         rotation = _rotation;
         *fov_scale = _fov_scale;
     }
 
-    __device__ ~camera() {
+    __device__ __host__ ~camera() {
         delete origin, rotation, fov_scale;
     }
 };
@@ -307,15 +308,15 @@ struct light {
     color* rgb = new color[1];
     double* intensity = new double[1];
 
-    __device__ light() {}
+    __device__ __host__ light() {}
 
-    __device__ light(vector* _position, color* _rgb, double _intensity) {
+    __device__ __host__ light(vector* _position, color* _rgb, double _intensity) {
         position = _position;
         rgb = _rgb;
         *intensity = _intensity;
     }
 
-    __device__ ~light() {
+    __device__ __host__ ~light() {
         delete position, rgb, intensity;
     }
 };
@@ -483,7 +484,7 @@ __device__ vector* ray_triangle_intersection_t(ray* r, triangle* t, bool* has_in
 
 
 // Print methods for debugging
-__device__ void print_vector(vector* v) {
+__device__ __host__ void print_vector(vector* v) {
     printf("(%f, %f, %f)", *v->x, *v->y, *v->z);
 }
 

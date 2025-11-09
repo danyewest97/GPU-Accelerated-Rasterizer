@@ -160,6 +160,60 @@ __device__ ray* generate_camera_ray(camera* curr_cam, dimensions* img_dim, int p
 }
 
 
+// Same as above but takes an index instead of pixel coordinates
+__device__ ray* generate_camera_ray(camera* curr_cam, dimensions* img_dim, int index) {
+    vector* cam_origin = curr_cam->origin;
+    vector* cam_normal = curr_cam->rotation;
+    int* width = img_dim->width;
+    int* height = img_dim->height;
+
+    // Converting the index into pixel coordinates
+    int pixel_x = index % *width;
+    int pixel_y = (int) ((double) index / *width);
+
+    // TODO: Confirm that rays need to be offset? Or should they just come directly from the camera origin with no offset? I think having an offset is 
+    // correct
+    // Note: may need optimizations for greater performance -- and either offload to CPU or do this in parallel (make new kernel for this?)
+    double* passthrough_plane_distance = curr_cam->fov_scale;              // Corresponds to the FOV scale of the camera (vertical and horizontal FOV 
+    // values depend on the width and height of the camera), this is my own 
+    // method for generating camera rays: imagine a plane that is fov_scale 
+    // units from the camera pinhole/aperture, and we are drawing a ray to the 
+    // centers of each of the cells on this plane -- the further away this 
+    // plane gets, the more clustered the rays are, so the smaller the FOV, 
+    // and vice versa for when the plane gets closer to the camera.
+    // I chose to do it this way because it is very intuitive to me and 
+    // incredibly easy to implement, since no rotation is involved
+    
+    double x = (-(double) (*width) / 2) + pixel_x + 0.5;
+    double y = (-(double) (*height) / 2) + pixel_y + 0.5;
+    vector* true_origin = new vector(0, 0, 0);                              // We will initially draw rays originating from (0, 0, 0), then translate 
+    // and rotate them according to the camera's position
+    vector* ray_direction = new vector(x, y, *passthrough_plane_distance);      // Adding a 0.5 unit offset to position rays into the middle of each
+                                                                                // pixel, instead of the top-right corner without the offset
+    
+    
+    ray* curr_ray = new ray(true_origin, ray_direction);                    // Creating the initial ray, not yet conformed to the camera's orientation
+    
+    cam_origin->add(curr_ray->origin);                                      // Orienting the ray to be lined up properly with the camera (translating 
+    // to the camera's origin)
+    
+    // TODO: Make this into one operation, by precalculating the single matrix needed for all three rotations and only using that matrix
+    //curr_ray->direction->rotate_x(true_origin, *cam_normal->x);              // Rotating the ray to face the same direction as the camera -- using 
+                                                                            // true_origin instead of cam_origin because the direction of the ray 
+                                                                            // determines where it points from its origin, so it is not 
+                                                                            // location-dependent and should therefore be rotated about (0, 0, 0)
+    //curr_ray->direction->rotate_y(true_origin, *cam_normal->y);
+    //curr_ray->direction->rotate_z(true_origin, *cam_normal->z);
+    curr_ray->direction->normalize();                                         // Normalizing the ray's direction so that distances returned from intersection methods will be 
+                                                                            // absolute and not scaled by the ray direction's length (the t-value, or distance, returned from the 
+                                                                            // ray-plane and ray-triangle intersection methods is dependent upon the ray direction's length, so if 
+                                                                            // that length is 1, the t-value returned will be the same as the Euclidean distance from the ray's 
+                                                                            // origin to the intersection point)
+
+    return curr_ray;
+}
+
+
 __global__ void ray_trace_kernel(double* vertices_in, double* img_out, double size, double triangles_per_thread, double img_width, double img_height) {
     int global_index = threadIdx.x + blockIdx.x * blockDim.x;
     
@@ -168,58 +222,30 @@ __global__ void ray_trace_kernel(double* vertices_in, double* img_out, double si
 
 // Note: For some reason (probably a compilation bug or something), HIP seems to break when I put two identical print statements in here
 // -- so don't do that!
-__global__ void test_kernel(int* img_out) {
+__global__ void test_kernel(color* img_out, camera* cam, dimensions* img_dimensions, triangle** triangles, int num_tris, int start_index, int end_index, vector* test) {
     printf("test kernel started\n");
 
-    //vector* cam_origin = new vector(0, 0, 0);
-    //vector* cam_direction = new vector(0, 0, 0);
-    //double fov_scale = 1;
-    //camera* main_cam = new camera(cam_origin, cam_direction, fov_scale);
+    //triangle* temp = triangles[0];
+    print_vector(test);
 
-    //int width = 10;
-    //int height = 10;
-    //int num_rays = width * height;
-    //dimensions* img_dimensions = new dimensions(width, height);
+    for (int i = start_index; i < end_index; i++) {
+        ray* primary_ray = generate_camera_ray(cam, img_dimensions, i);
 
-    //ray* main_cam_ray = generate_camera_ray(main_cam, img_dimensions, 3, 3);
-
-    //plane* test_plane = new plane(new vector(0, 0, 1), -1);
-    //bool* has_intersection = new bool[1];
-    //double* t = ray_plane_intersection_t(main_cam_ray, test_plane, has_intersection);
-    //printf("%f\n", *t);
-
-    vector* a = new vector(0, 0, 1);
-    vector* b = new vector(0, 10, 1);
-    vector* c = new vector(10, 0, 1);
-    material* m = new material(new color(0, 0, 0), 0, 0, 0);
-    triangle* t = new triangle(m, a, b, c);
-
-    dimensions* dim = new dimensions(20, 20);
-    camera* cam = new camera(new vector(0, 0, 0), new vector(0, 0, 0), 1);
-    for (int i = 0; i < 20; i++) {
-        for (int j = 0; j < 20; j++) {
-            ray* r = generate_camera_ray(cam, dim, i, j);
-            //ray* r = new ray(new vector(i - 10, j - 10, 0), new vector(0, 0, 1));
-
+        bool* has_an_intersection = new bool[1];
+        for (int j = 0; j < num_tris; j++) {
+            triangle* curr_tri = triangles[j];
             bool* has_intersection = new bool[1];
-            *has_intersection = false;
-
             double* t_out = new double[1];
-            *t_out = 0;
+            vector* collision_point = ray_triangle_intersection_t(primary_ray, curr_tri, has_intersection, t_out);
+            *has_an_intersection |= *has_intersection;
+        }
 
-            vector* collision = ray_triangle_intersection_t(r, t, has_intersection, t_out);
-            if (*has_intersection) {
-                img_out[i * 20 + j] = 1;
-                //printf("%f\n", *t_out);
-                printf("%f, %f, %f\n", *collision->x, *collision->y, *collision->z);
-            } else {
-                img_out[i * 20 + j] = 0;
-            }
-
-            //printf("%f, %f, %f\n", *r->direction->x, *r->direction->y, *r->direction->z);
+        if (*has_an_intersection) {
+            color* white = new color(255, 255, 255);
+            img_out[i] = *white;
         }
     }
-
+    
 
     
 
@@ -231,18 +257,19 @@ __global__ void initialization() {}
 
 
 // Runs the test kernel iterations times and spits out the average time per iteration, in nanoseconds
+// Needs to be updated
 void run_test_kernel(int iterations) {
     int* times = new int[iterations];                                                   // An array to store the results of the test_kernel running 
                                                                                         // multiple times, to take the average time
     for (int i = iterations; i >= 0; i--) {
         auto start = std::chrono::high_resolution_clock::now();                         // For timing, to see how long the test function takes to run
         
-        test_kernel<<<
-            dim3(1),
-            dim3(1),
-            0,
-            hipStreamDefault
-        >>>(new int[1]);
+        //test_kernel<<<
+        //    dim3(1),
+        //    dim3(1),
+        //    0,
+        //    hipStreamDefault
+        //>>>(new color[1]);
         
         // Wait on all active streams on the current device. VERY NECESSARY
         hipDeviceSynchronize();
@@ -288,30 +315,69 @@ void run()
     
     //run_test_kernel(1);
     
+    // The dimensions of our output image
+    int height = 20;
+    int width = 20;
     
-    int* img_out;
-    hipMalloc(&img_out, 400 * sizeof(int));
+    int img_size = height * width * sizeof(color);              // The amount of memory we need for our image
+    color* img_out;                                         // The output image, we are not initializing it with any memory because we want it to be
+                                                            // initialized in the device/GPU's memory, not the host/CPU's memory
+    hipMalloc(&img_out, img_size);
+
+    double fov_scale = 1;
+    vector* cam_origin = new vector(0, 0, 0);
+    vector* cam_direction = new vector(0, 0, 0);
+    camera* main_cam = new camera(cam_origin, cam_direction, fov_scale);
+
+    dimensions* img_dim = new dimensions(width, height);
+
+    int num_tris = 1;
+    int size_of_triangles = num_tris * sizeof(triangle);
+    material* placeholder_material = new material(new color(255, 255, 255), 1, 0, 0);
+    triangle** triangles = new triangle*[num_tris * sizeof(triangle)];
+
+    triangle* test_tri_1 = new triangle(placeholder_material, new vector(0, 0, 1), new vector(10, 0, 1), new vector(0, 10, 1));
+    triangles[0] = test_tri_1;
+
+    // Copying all of the variables above to the GPU memory
+    camera* gpu_main_cam;
+    hipMalloc(&gpu_main_cam, sizeof(camera));
+    hipMemcpy(gpu_main_cam, main_cam, sizeof(camera), hipMemcpyHostToDevice);
+
+    dimensions* gpu_img_dim;
+    hipMalloc(&gpu_img_dim, sizeof(dimensions));
+    hipMemcpy(gpu_img_dim, img_dim, sizeof(dimensions), hipMemcpyHostToDevice);
+
+    triangle** gpu_triangles;
+    hipMalloc(&gpu_triangles, sizeof(size_of_triangles));
+    hipMemcpy(gpu_triangles, triangles, sizeof(size_of_triangles), hipMemcpyHostToDevice);
+
+
+    double* x = new double[1];
+    *x = 3;
+    double* gpu_x;
+    hipMalloc(&gpu_x, sizeof(double));
+    hipMemcpy(gpu_x, x, sizeof(double), hipMemcpyHostToDevice);
+
+    vector* v = new vector(1, 1, 2);
+    v->x = gpu_x;
+    vector* gpu_v;
+    hipMalloc(&gpu_v, sizeof(vector));
+    hipMemcpy(gpu_v, v, sizeof(vector), hipMemcpyHostToDevice);
 
     test_kernel<<<
         dim3(1),
         dim3(1),
         0,
         hipStreamDefault
-    >>>(img_out);
+    >>>(img_out, gpu_main_cam, gpu_img_dim, gpu_triangles, num_tris, 0, 400, gpu_v);                     // Start index is inclusive, end index is exclusive
 
     
     // Wait on all active streams on the current device. VERY NECESSARY
     hipDeviceSynchronize();
     
-    int* result = new int[400 * sizeof(int)];
-    hipMemcpy(result, img_out, 400 * sizeof(int), hipMemcpyDeviceToHost);
-
-    for (int i = 0; i < 20; i++) {
-        for (int j = 0; j < 20; j++) {
-            printf("%i, ", result[i * 20 + j]);
-        }
-        printf("\n");
-    }
+    color* result = new color[img_size];
+    hipMemcpy(result, img_out, img_size, hipMemcpyDeviceToHost);
 }
 
 
