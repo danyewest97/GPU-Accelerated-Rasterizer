@@ -36,7 +36,7 @@ __host__ vector* vector_to_gpu(vector* cpu_var) {
 __host__ color* color_to_gpu(color* cpu_var) {
     double* gpu_r;
     hipMalloc(&gpu_r, sizeof(double));
-    hipMemcpy(gpu_r, cpu_var->b, sizeof(double), hipMemcpyHostToDevice);
+    hipMemcpy(gpu_r, cpu_var->r, sizeof(double), hipMemcpyHostToDevice);
 
     double* gpu_g;
     hipMalloc(&gpu_g, sizeof(double));
@@ -219,4 +219,31 @@ __host__ light* light_to_gpu(light* cpu_var) {
     hipMemcpy(result, gpu_var, sizeof(light), hipMemcpyHostToDevice);
 
     return result;
+}
+
+
+
+// These are the functions that do the opposite of the above functions -- they take a pointer to a variable stored on the GPU and return a pointer to 
+// the same variable copied to the CPU with all of its members. This will need to be implemented for every struct as well eventually, but for now I am 
+// only doing the color struct in order to get an output image
+__host__ color* color_to_cpu(color* gpu_var) {
+    color* cpu_var = new color[1];
+    hipMemcpy(cpu_var, gpu_var, sizeof(color), hipMemcpyDeviceToHost);                      // Copying the GPU addresses over so that we can access 
+                                                                                            // them in the following lines, on the CPU
+
+    double* cpu_r = new double[1];
+    hipMemcpy(cpu_r, cpu_var->r, sizeof(double), hipMemcpyDeviceToHost);
+
+    double* cpu_g = new double[1];
+    hipMemcpy(cpu_g, cpu_var->g, sizeof(double), hipMemcpyDeviceToHost);
+
+    double* cpu_b = new double[1];
+    hipMemcpy(cpu_b, cpu_var->b, sizeof(double), hipMemcpyDeviceToHost);
+
+    
+    cpu_var->r = cpu_r;
+    cpu_var->g = cpu_g;
+    cpu_var->b = cpu_b;
+
+    return cpu_var;
 }

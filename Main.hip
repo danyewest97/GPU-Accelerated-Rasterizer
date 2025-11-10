@@ -226,9 +226,6 @@ __global__ void ray_trace_kernel(double* vertices_in, double* img_out, double si
 __global__ void test_kernel(color* img_out, camera* cam, dimensions* img_dimensions, triangle** triangles, int num_tris, int start_index, int end_index) {
     printf("test kernel started\n");
 
-    triangle* temp = triangles[0];
-    print_vector(temp->a);
-
     for (int i = start_index; i < end_index; i++) {
         ray* primary_ray = generate_camera_ray(cam, img_dimensions, i);
         bool* has_an_intersection = new bool[1];
@@ -361,8 +358,7 @@ void run()
     // Wait on all active streams on the current device. VERY NECESSARY
     hipDeviceSynchronize();
     
-    color* result = new color[img_size];
-    hipMemcpy(result, img_out, img_size, hipMemcpyDeviceToHost);
+    color* result = color_to_cpu(img_out);
 }
 
 
