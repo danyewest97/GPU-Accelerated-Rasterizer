@@ -229,18 +229,16 @@ __host__ light* light_to_gpu(light* cpu_var) {
 __host__ color* color_to_cpu(color* gpu_var) {
     color* cpu_var = new color[1];
     hipMemcpy(cpu_var, gpu_var, sizeof(color), hipMemcpyDeviceToHost);                      // Copying the GPU addresses over so that we can access 
-                                                                                            // them in the following lines, on the CPU
-
-    double* cpu_r;
+    // them in the following lines, on the CPU
+    
+    double* cpu_r = new double[1];
     hipMemcpy(cpu_r, cpu_var->r, sizeof(double), hipMemcpyDeviceToHost);
 
-    double* cpu_g;
+    double* cpu_g = new double[1];
     hipMemcpy(cpu_g, cpu_var->g, sizeof(double), hipMemcpyDeviceToHost);
 
-    double* cpu_b;
+    double* cpu_b = new double[1];
     hipMemcpy(cpu_b, cpu_var->b, sizeof(double), hipMemcpyDeviceToHost);
-    
-    printf("\n%f", *cpu_b);
 
     cpu_var->r = cpu_r;
     cpu_var->g = cpu_g;
