@@ -259,7 +259,7 @@ __host__ color** img_to_cpu(color** gpu_var, int size) {
     
     
     for (int i = 0; i < size; i++) {
-        color* cpu_color = color_to_cpu(cpu_var[i]);
+        color* cpu_color = cpu_var[i];
         cpu_var[i] = cpu_color;
     }
     
