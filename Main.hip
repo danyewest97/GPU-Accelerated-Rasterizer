@@ -289,7 +289,7 @@ void run_test_kernel(int iterations) {
 // a shader to the GPU for it to handle and send back, but actually making new variables and doing more than *just* matrix matrix multiplication
 // on the kernel
 
-void run()
+color* run()
 {
     // Kind of a hack, but see note below -- HIP takes a very long time to run the first kernel, but not the ones run after it, so I am including this
     // call to an empty kernel to "initialize" HIP so that the timing for the test_kernel kernel is not offset for debugging/timing purposes
@@ -359,11 +359,13 @@ void run()
     hipDeviceSynchronize();
     
     color* result = color_to_cpu(img_out);
+    return result;
 }
 
 
 
 
-JNIEXPORT void JNICALL Java_Main_test(JNIEnv* env, jobject thisObject) {
-    run();
+JNIEXPORT jobjectArray JNICALL Java_Main_test(JNIEnv* env, jobject thisObject) {
+    color* img = run();
+    
 }
