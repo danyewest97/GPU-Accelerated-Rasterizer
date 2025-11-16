@@ -226,6 +226,7 @@ __global__ void ray_trace_kernel(double* vertices_in, double* img_out, double si
 __global__ void test_kernel(color** img_out, camera* cam, dimensions* img_dimensions, triangle** triangles, int num_tris, int start_index, int end_index) {
     printf("test kernel started\n");
 
+
     for (int i = start_index; i < end_index; i++) {
         ray* primary_ray = generate_camera_ray(cam, img_dimensions, i);
         bool* has_an_intersection = new bool[1];
@@ -237,10 +238,17 @@ __global__ void test_kernel(color** img_out, camera* cam, dimensions* img_dimens
             *has_an_intersection |= *has_intersection;
         }
 
-        //if (*has_an_intersection) {
-            color* white = new color(1, 1, 1);
-            img_out[i] = white;
-        //}
+        if (*has_an_intersection) {
+            // IDK why this way doesn't work
+            //color* white = new color(1, 1, 1);
+            // img_out[i] = white;
+
+            // NOTE: IDK why I have to do it this way (why just doing img_out = new color(1, 1, 1) doesn't work), I have some suspicions but it feels
+            // wrong to have to do it this way. There must be a better way.
+            *(img_out[i]->r) = 1;
+            *(img_out[i]->g) = 1;
+            *(img_out[i]->b) = 1;
+        }
     }
     
 
@@ -319,8 +327,15 @@ color** run()
     
     int img_size = num_pixels * sizeof(color*);              // The amount of memory we need for our image
     color** img_out;                                         // The output image, we are not initializing it with any memory because we want it to be
-                                                            // initialized in the device/GPU's memory, not the host/CPU's memory
+                                                             // initialized in the device/GPU's memory, not the host/CPU's memory
     hipMalloc(&img_out, img_size);
+
+    // Filling the img with black pixels
+    color** blank_image = new color*[num_pixels];
+    for (int i = 0; i < num_pixels; i++) {
+        blank_image[i] = color_to_gpu(new color(0, 0, 0));
+    }
+    hipMemcpy(img_out, blank_image, img_size, hipMemcpyHostToDevice);
 
     // Assigning all of our variables -- things like camera settings and test triangles
     double fov_scale = 1;
@@ -363,10 +378,6 @@ color** run()
     // Getting our final result from the GPU to the CPU
     color** result = img_to_cpu(img_out, num_pixels);
 
-    // color* test_color = new color(1, 2, 3);
-    // color* test_color_gpu = color_to_gpu(test_color);
-    // color* test_color_cpu = color_to_cpu(test_color_gpu);
-    // printf("\n%f", *test_color_cpu->r);
     return result;
 }
 
@@ -377,7 +388,7 @@ JNIEXPORT jdoubleArray JNICALL Java_Main_test(JNIEnv* env, jobject thisObject) {
     color** img = run();
     for (int i = 0; i < 400; i++) {
         color* curr_color = img[i];
-        // printf("\n%f", *curr_color->r);
+        printf("\n%f", *curr_color->r);
     }
 
     
