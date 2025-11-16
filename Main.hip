@@ -223,7 +223,7 @@ __global__ void ray_trace_kernel(double* vertices_in, double* img_out, double si
 
 // Note: For some reason (probably a compilation bug or something), HIP seems to break when I put two identical print statements in here
 // -- so don't do that!
-__global__ void test_kernel(color* img_out, camera* cam, dimensions* img_dimensions, triangle** triangles, int num_tris, int start_index, int end_index) {
+__global__ void test_kernel(color** img_out, camera* cam, dimensions* img_dimensions, triangle** triangles, int num_tris, int start_index, int end_index) {
     printf("test kernel started\n");
 
     for (int i = start_index; i < end_index; i++) {
@@ -237,10 +237,10 @@ __global__ void test_kernel(color* img_out, camera* cam, dimensions* img_dimensi
             *has_an_intersection |= *has_intersection;
         }
 
-        if (*has_an_intersection) {
-            color* white = new color(255, 255, 255);
-            img_out[i] = *white;
-        }
+        //if (*has_an_intersection) {
+            color* white = new color(1, 1, 1);
+            img_out[i] = white;
+        //}
     }
     
 
@@ -289,7 +289,7 @@ void run_test_kernel(int iterations) {
 // a shader to the GPU for it to handle and send back, but actually making new variables and doing more than *just* matrix matrix multiplication
 // on the kernel
 
-color* run()
+color** run()
 {
     // Kind of a hack, but see note below -- HIP takes a very long time to run the first kernel, but not the ones run after it, so I am including this
     // call to an empty kernel to "initialize" HIP so that the timing for the test_kernel kernel is not offset for debugging/timing purposes
@@ -315,12 +315,14 @@ color* run()
     // The dimensions of our output image
     int height = 20;
     int width = 20;
+    int num_pixels = width * height;
     
-    int img_size = height * width * sizeof(color);              // The amount of memory we need for our image
-    color* img_out;                                         // The output image, we are not initializing it with any memory because we want it to be
+    int img_size = num_pixels * sizeof(color*);              // The amount of memory we need for our image
+    color** img_out;                                         // The output image, we are not initializing it with any memory because we want it to be
                                                             // initialized in the device/GPU's memory, not the host/CPU's memory
     hipMalloc(&img_out, img_size);
 
+    // Assigning all of our variables -- things like camera settings and test triangles
     double fov_scale = 1;
     vector* cam_origin = new vector(0, 0, 0);
     vector* cam_direction = new vector(0, 0, 0);
@@ -346,7 +348,7 @@ color* run()
     hipMalloc(&gpu_triangles, size_of_triangles);
     hipMemcpy(gpu_triangles, triangles, size_of_triangles, hipMemcpyHostToDevice);
 
-
+    // Starting the kernel
     test_kernel<<<
         dim3(1),
         dim3(1),
@@ -358,14 +360,22 @@ color* run()
     // Wait on all active streams on the current device. VERY NECESSARY
     hipDeviceSynchronize();
     
-    color* result = color_to_cpu(img_out);
+    // Getting our final result from the GPU to the CPU
+    color** result = img_to_cpu(img_out, num_pixels);
     return result;
 }
 
 
 
 
-JNIEXPORT jobjectArray JNICALL Java_Main_test(JNIEnv* env, jobject thisObject) {
-    color* img = run();
+JNIEXPORT jdoubleArray JNICALL Java_Main_test(JNIEnv* env, jobject thisObject) {
+    color** img = run();
+    for (int i = 0; i < 400; i++) {
+        color* curr_color = img[i];
+        //printf("\n%f", *curr_color->r);
+    }
+
     
+    jdoubleArray img_java = env->NewDoubleArray(1200);
+    return img_java;
 }

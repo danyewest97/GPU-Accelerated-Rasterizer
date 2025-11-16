@@ -231,19 +231,37 @@ __host__ color* color_to_cpu(color* gpu_var) {
     hipMemcpy(cpu_var, gpu_var, sizeof(color), hipMemcpyDeviceToHost);                      // Copying the GPU addresses over so that we can access 
                                                                                             // them in the following lines, on the CPU
 
-    double* cpu_r = new double[1];
+    double* cpu_r;
     hipMemcpy(cpu_r, cpu_var->r, sizeof(double), hipMemcpyDeviceToHost);
 
-    double* cpu_g = new double[1];
+    double* cpu_g;
     hipMemcpy(cpu_g, cpu_var->g, sizeof(double), hipMemcpyDeviceToHost);
 
-    double* cpu_b = new double[1];
+    double* cpu_b;
     hipMemcpy(cpu_b, cpu_var->b, sizeof(double), hipMemcpyDeviceToHost);
-
     
+    printf("\n%f", *cpu_b);
+
     cpu_var->r = cpu_r;
     cpu_var->g = cpu_g;
     cpu_var->b = cpu_b;
 
+    return cpu_var;
+}
+
+
+// This function is specially used to take the output image and transfer it to the CPU, so it needs to take in a size argument as well that 
+// corresponds to the number of pixels
+__host__ color** img_to_cpu(color** gpu_var, int size) {
+    color** cpu_var = new color*[size];
+    hipMemcpy(cpu_var, gpu_var, sizeof(color*) * size, hipMemcpyDeviceToHost);              // Copying the GPU addresses over so that we can access 
+                                                                                            // them in the following lines, on the CPU
+    
+    
+    for (int i = 0; i < size; i++) {
+        color* cpu_color = color_to_cpu(cpu_var[i]);
+        cpu_var[i] = cpu_color;
+    }
+    
     return cpu_var;
 }
