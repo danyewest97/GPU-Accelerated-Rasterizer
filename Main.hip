@@ -348,11 +348,6 @@ color** run()
     hipMalloc(&gpu_triangles, size_of_triangles);
     hipMemcpy(gpu_triangles, triangles, size_of_triangles, hipMemcpyHostToDevice);
 
-    color* test_color = new color(1, 2, 3);
-    color* test_color_gpu = color_to_gpu(test_color);
-    color* test_color_cpu = color_to_cpu(test_color_gpu);
-    printf("\n%f", *test_color_cpu->r);
-
     // Starting the kernel
     test_kernel<<<
         dim3(1),
@@ -366,9 +361,13 @@ color** run()
     hipDeviceSynchronize();
     
     // Getting our final result from the GPU to the CPU
-    //color** result = img_to_cpu(img_out, num_pixels);
-    //return result;
-    return NULL;
+    color** result = img_to_cpu(img_out, num_pixels);
+
+    // color* test_color = new color(1, 2, 3);
+    // color* test_color_gpu = color_to_gpu(test_color);
+    // color* test_color_cpu = color_to_cpu(test_color_gpu);
+    // printf("\n%f", *test_color_cpu->r);
+    return result;
 }
 
 
@@ -377,8 +376,8 @@ color** run()
 JNIEXPORT jdoubleArray JNICALL Java_Main_test(JNIEnv* env, jobject thisObject) {
     color** img = run();
     for (int i = 0; i < 400; i++) {
-        //color* curr_color = img[i];
-        //printf("\n%f", *curr_color->r);
+        color* curr_color = img[i];
+        // printf("\n%f", *curr_color->r);
     }
 
     
