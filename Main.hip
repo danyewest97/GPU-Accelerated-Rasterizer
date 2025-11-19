@@ -160,6 +160,7 @@ __device__ ray* generate_camera_ray(camera* curr_cam, dimensions* img_dim, int p
     return curr_ray;
 }
 
+
 // Note from self: switch to camera at (0, 0, 0) with translation (like KSA and BRUTAL) instead of translating the camera itself??
 // Also need to add scaling of camera
 // Same as above but takes an index instead of pixel coordinates
