@@ -297,7 +297,7 @@ void run_test_kernel(int iterations) {
 // a shader to the GPU for it to handle and send back, but actually making new variables and doing more than *just* matrix matrix multiplication
 // on the kernel
 
-color** run()
+color** run(int width, int height)
 {
     // Kind of a hack, but see note below -- HIP takes a very long time to run the first kernel, but not the ones run after it, so I am including this
     // call to an empty kernel to "initialize" HIP so that the timing for the test_kernel kernel is not offset for debugging/timing purposes
@@ -320,11 +320,8 @@ color** run()
     
     //run_test_kernel(1);
     
-    // The dimensions of our output image
-    int height = 20;
-    int width = 20;
+    // The number of pixels and size of our output image
     int num_pixels = width * height;
-    
     int img_size = num_pixels * sizeof(color*);              // The amount of memory we need for our image
     color** img_out;                                         // The output image, we are not initializing it with any memory because we want it to be
                                                              // initialized in the device/GPU's memory, not the host/CPU's memory
@@ -369,7 +366,7 @@ color** run()
         dim3(1),
         0,
         hipStreamDefault
-    >>>(img_out, gpu_main_cam, gpu_img_dim, gpu_triangles, num_tris, 0, 400);                     // Start index is inclusive, end index is exclusive
+    >>>(img_out, gpu_main_cam, gpu_img_dim, gpu_triangles, num_tris, 0, num_pixels);               // Start index is inclusive, end index is exclusive
 
     
     // Wait on all active streams on the current device. VERY NECESSARY
@@ -384,21 +381,19 @@ color** run()
 
 
 
-JNIEXPORT jdoubleArray JNICALL Java_Main_test(JNIEnv* env, jobject thisObject) {
-    color** img = run();
-    // for (int i = 0; i < 400; i++) {
-    //     color* curr_color = img[i];
-    //     printf("\n%f", *curr_color->r);
-    // }
+JNIEXPORT jdoubleArray JNICALL Java_Main_test(JNIEnv* env, jobject thisObject, jint width, jint height) {
+    color** img = run(width, height);
 
-    jdoubleArray img_java = env->NewDoubleArray(1200);
+    int num_pixels = width * height;
+    int num_colors = num_pixels * 3;
+    jdoubleArray img_java = env->NewDoubleArray(num_colors);
 
     // Creating a usable shallow copy of the img_java array as a jdouble pointer, and filling it with the color values calculated by the GPU to send 
     // back to the Java host program to be displayed
     jboolean* is_copy_ptr = new jboolean[1];
     *is_copy_ptr = JNI_FALSE;
     jdouble* arr_ptrs = env->GetDoubleArrayElements(img_java, is_copy_ptr);              // Getting the img_out jdoubleArray object as a C++ array
-    for (int i = 0; i < 400; i++) {
+    for (int i = 0; i < num_pixels; i++) {
         // Taking the color values from each pixel
         color* curr_color = img[i];
         double r = *curr_color->r;
