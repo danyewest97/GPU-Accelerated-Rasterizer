@@ -10,8 +10,8 @@ import java.awt.image.*;
 import javax.swing.*;
 
 public class Main {
-    public static int width = 20;
-    public static int height = 20;
+    public static int width = 40;
+    public static int height = 40;
     public static double[] output = null;
     public native double[] test(int width, int height);                // Declaring a native function name -- native = from a dll/other coding 
                                                                        // language
