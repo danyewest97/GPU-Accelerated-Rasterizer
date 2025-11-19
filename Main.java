@@ -8,7 +8,10 @@ public class Main {
 
     public static void main(String[] args) {
         System.out.println("Running!");
-        new Main().test();
+        double[] output = new Main().test();
+        for (double color_value : output) {
+            System.out.println(color_value);
+        }
         System.out.println("\nProgram finished!");
     }
 }
